@@ -24,6 +24,9 @@ Pieces are represented by the letters in the following table
 
 The board is represented as an 8x4 (8 columns, 4 rows) board with coordinates as follows:
 
-| | | | | | | | |
-| | | | | | | | |
-| | | | | | | | |
+| .   | A | B | C | D | E | F | G | H |
+|----:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|**1**|   |   |   |   |   |   |   |   |
+|**2**|   |   |   |   |   |   |   |   |
+|**3**|   |   |   |   |   |   |   |   |
+|**4**|   |   |   |   |   |   |   |   |
