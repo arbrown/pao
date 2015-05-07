@@ -1,0 +1,57 @@
+table.banqi-board{
+  /*border-collapse:collapse;*/
+  border-spacing:0;
+  border:1px black solid
+}
+td.banqi-square {
+  color:darkslategrey;
+  height:90px;
+  width:90px;
+  border:1px black solid;
+  text-align:center;
+  font-size:2em;
+  background-size: 90%;
+  background-repeat: no-repeat;
+  background-position:center center;
+}
+
+td.banqi-square.selected{
+  border: 1px red solid;
+}
+
+td.banqi-square.red-king{
+  background-image: url("/images/red-king.svg")
+} 
+td.banqi-square.red-guard{
+  background-image: url("/images/red-guard.svg")
+} 
+td.banqi-square.red-elephant{
+  background-image: url("/images/red-elephant.svg")
+} 
+td.banqi-square.red-cart{
+  background-image: url("/images/red-cart.svg")
+} 
+td.banqi-square.red-horse{
+  background-image: url("/images/red-horse.svg")
+} 
+td.banqi-square.red-pawn{
+  background-image: url("/images/red-pawn.svg")
+} 
+td.banqi-square.black-king{
+  background-image: url("/images/black-king.svg")
+} 
+td.banqi-square.black-guard{
+  background-image: url("/images/black-guard.svg")
+} 
+td.banqi-square.black-elephant{
+  background-image: url("/images/black-elephant.svg")
+} 
+td.banqi-square.black-cart{
+  background-image: url("/images/black-cart.svg")
+} 
+td.banqi-square.black-horse{
+  background-image: url("/images/black-horse.svg")
+} 
+td.banqi-square.black-pawn{
+  background-image: url("/images/black-pawn.svg")
+} 

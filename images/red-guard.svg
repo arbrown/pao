@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="67"
+   height="67"
+   id="svg3289"
+   version="1.1"
+   inkscape:version="0.48.2 r9819"
+   sodipodi:docname="black-king.svg">
+  <defs
+     id="defs3291" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5.5"
+     inkscape:cx="32"
+     inkscape:cy="32"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:document-units="px"
+     inkscape:grid-bbox="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1058"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata3294">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     transform="translate(0,3)">
+    <g
+       id="g2938"
+       transform="translate(-21.75,-13.25)">
+      <path
+         transform="translate(12.75,1.25)"
+         d="M 75,42.5 C 75,60.449254 60.449254,75 42.5,75 24.550746,75 10,60.449254 10,42.5 10,24.550746 24.550746,10 42.5,10 60.449254,10 75,24.550746 75,42.5 z"
+         sodipodi:ry="32.5"
+         sodipodi:rx="32.5"
+         sodipodi:cy="42.5"
+         sodipodi:cx="42.5"
+         id="path12855"
+         style="fill:#fedaa4;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible"
+         sodipodi:type="arc" />
+      <path
+         sodipodi:type="arc"
+         style="fill:none;stroke:#cc0000;stroke-width:2.23299003;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible"
+         id="path12857"
+         sodipodi:cx="42.5"
+         sodipodi:cy="42.5"
+         sodipodi:rx="32.5"
+         sodipodi:ry="32.5"
+         d="M 75,42.5 C 75,60.449254 60.449254,75 42.5,75 24.550746,75 10,60.449254 10,42.5 10,24.550746 24.550746,10 42.5,10 60.449254,10 75,24.550746 75,42.5 z"
+         transform="matrix(0.89566,0,0,0.89566,17.1844,5.68443)" />
+      <path
+         inkscape:connector-curvature="0"
+         id="text12867"
+         d="m 46.421875,55.3125 0,-16.71875 1.09375,-1.09375 -2.34375,-1.09375 C 46.213531,34.32294 47.177071,32.4219 48.0625,30.703125 48.947903,28.984404 49.807277,27.916697 50.640625,27.5 l -3.59375,-2.1875 c -1.041677,4.375028 -2.369801,8.229191 -3.984375,11.5625 -1.614589,3.333351 -3.619796,6.718764 -6.015625,10.15625 L 37.515625,47.5 c 2.083329,-2.187488 4.270827,-5.104151 6.5625,-8.75 l 0,16.71875 c -9e-6,1.770834 -0.05209,4.010415 -0.15625,6.71875 l 2.65625,-1.09375 c -0.104178,-2.083335 -0.156261,-4.010416 -0.15625,-5.78125 l 0,0 z m 12.5,-22.1875 0,5.625 -10.9375,0 1.25,1.25 c 0.937485,-0.312482 1.979151,-0.468732 3.125,-0.46875 l 6.5625,0 0,17.96875 -9.375,0 1.25,1.25 c 0.937484,-0.312501 1.979149,-0.46875 3.125,-0.46875 l 17.65625,0 -2.65625,-2.8125 -2.03125,2.03125 -5.625,0 0,-17.96875 12.1875,0 -2.8125,-3.125 -2.5,2.34375 -6.875,0 0,-10.15625 1.09375,-0.9375 -3.59375,-1.71875 c 0.104143,2.708362 0.156226,5.104193 0.15625,7.1875 l 0,0 z"
+         style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:end;line-height:100%;text-anchor:end;fill:#cc0000;fill-opacity:1;stroke:#cc0000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:DejaVu Serif" />
+    </g>
+  </g>
+</svg>
