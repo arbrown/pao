@@ -70,6 +70,7 @@ var Board = React.createClass({
             selected={current && current.rank == rank && current.file == file}
             rank={rank}
             file={file}
+            key={(rank+file)*(rank+file+1)/2 + file}
             >
           </Square>);
         }
@@ -137,9 +138,3 @@ NotationToCss = {
   'q' : 'red-cannon',
   '?' : 'unflipped-piece'
 }
-
-
-React.render(
-  React.createElement(Board, null),
-  document.getElementById('board')
-);

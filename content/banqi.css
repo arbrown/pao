@@ -1,8 +1,20 @@
 table.banqi-board{
   /*border-collapse:collapse;*/
   border-spacing:0;
-  border:1px black solid
+  border:1px black solid;
+  display:inline-block;
 }
+.chat{
+  display:inline-block;
+  border: 1px solid black;
+  width:20%;
+  vertical-align:top;
+}
+
+.chat-message p{
+  display:inline;
+}
+
 td.banqi-square {
   color:darkslategrey;
   height:90px;
@@ -58,4 +70,8 @@ td.banqi-square.black-pawn{
 }
 td.banqi-square.unflipped-piece{
   background-image: url("/images/unflipped-piece.svg")
+}
+
+button.reset-button {
+  display:block
 }
