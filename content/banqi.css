@@ -16,42 +16,46 @@ td.banqi-square {
 }
 
 td.banqi-square.selected{
+  background-color:indianred;
   border: 1px red solid;
 }
 
 td.banqi-square.red-king{
   background-image: url("/images/red-king.svg")
-} 
+}
 td.banqi-square.red-guard{
   background-image: url("/images/red-guard.svg")
-} 
+}
 td.banqi-square.red-elephant{
   background-image: url("/images/red-elephant.svg")
-} 
+}
 td.banqi-square.red-cart{
   background-image: url("/images/red-cart.svg")
-} 
+}
 td.banqi-square.red-horse{
   background-image: url("/images/red-horse.svg")
-} 
+}
 td.banqi-square.red-pawn{
   background-image: url("/images/red-pawn.svg")
-} 
+}
 td.banqi-square.black-king{
   background-image: url("/images/black-king.svg")
-} 
+}
 td.banqi-square.black-guard{
   background-image: url("/images/black-guard.svg")
-} 
+}
 td.banqi-square.black-elephant{
   background-image: url("/images/black-elephant.svg")
-} 
+}
 td.banqi-square.black-cart{
   background-image: url("/images/black-cart.svg")
-} 
+}
 td.banqi-square.black-horse{
   background-image: url("/images/black-horse.svg")
-} 
+}
 td.banqi-square.black-pawn{
   background-image: url("/images/black-pawn.svg")
-} 
+}
+td.banqi-square.unflipped-piece{
+  background-image: url("/images/unflipped-piece.svg")
+}
