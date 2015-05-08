@@ -9,6 +9,16 @@ type playerCommand struct {
 	p *player
 }
 
-type chatMessage struct {
-	Player, Message string
+type chatCommand struct {
+	Action, Player, Message string
+}
+
+type boardCommand struct {
+	Action   string
+	Board    [][]string
+	YourTurn bool
+}
+
+type colorCommand struct {
+	Action, Color string
 }

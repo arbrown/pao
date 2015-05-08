@@ -71,6 +71,12 @@ td.banqi-square.black-pawn{
 td.banqi-square.unflipped-piece{
   background-image: url("/images/unflipped-piece.svg")
 }
+td.banqi-square.red-cannon{
+  background-image: url("/images/red-cannon.svg")
+}
+td.banqi-square.black-cannon{
+  background-image: url("/images/black-cannon.svg")
+}
 
 button.reset-button {
   display:block

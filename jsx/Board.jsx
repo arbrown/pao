@@ -25,23 +25,30 @@ var Square = React.createClass({
 
 var Board = React.createClass({
   flipPiece: function(square){
+    var files = 'ABCDEFGH';
+    var move = '?'+files.charAt(square.file)+square.rank;
     console.log("Tried to flip piece at: " + square.rank+","+square.file);
+    !this.props.sendMove || this.props.sendMove(move)
   },
   move: function(attacker, target){
+    var files = 'ABCDEFGH';
     console.log("Tried to attack/move from: " + attacker.rank+"," +attacker.file
     + " to: " + target.rank+","+target.file);
+    var move =  files.charAt(attacker.file) + attacker.rank + '>' +
+                files.charAt(target.file) + target.rank;
+    !this.props.sendMove || this.props.sendMove(move);
   },
   handleClick: function(clicked){
     var s = this.state.selected;
-    var sp = s ? this.state.board[s.rank][s.file] : null;
-    var cp = this.state.board[clicked.rank][clicked.file];
+    var sp = s ? this.props.board[s.rank][s.file] : null;
+    var cp = this.props.board[clicked.rank][clicked.file];
     if (s && s.rank == clicked.rank && s.file == clicked.file){
-      if (this.state.myTurn && sp == '?'){
+      if (this.props.myTurn && sp == '?'){
         this.flipPiece(clicked);
       }
       this.setState({selected: null});
     }
-    else{ if (s && this.IOwn(s) && this.state.myTurn){
+    else{ if (s && this.IOwn(s) && this.props.myTurn){
       this.move(s, clicked);
       this.setState({selected: null});
     } else{
@@ -50,18 +57,9 @@ var Board = React.createClass({
     }
   },
   render: function(){
-    var rows=[];
-    var comp = this;
-    for (var i=0; i<4; i++){
-      rows.push([]);
-      for (var j=0; j< 8; j++){
-        rows[i].push({rank:i, file:j});
-      }
-    }
-
     var current = this.state.selected;
-
-    var rowElements = this.state.board.map(function(row, rank){
+    var comp = this;
+    var rowElements = this.props.board.map(function(row, rank){
       var squares = row.map(function(square, file){
         return (
           <Square
@@ -85,18 +83,11 @@ var Board = React.createClass({
   },
   getInitialState: function() {
     return {
-      board : [
-      ['?','?','?','?','?','?','?','?'],
-      ['?','k','K','?','?','?','?','?'],
-      ['?','?','?','?','?','?','?','?'],
-      ['?','?','?','?','?','?','?','?']],
       selected : null,
-      myTurn : true,
-      myColor : 'red'
     };
   },
   IOwn : function(square){
-    switch (this.state.board[square.rank][square.file]) {
+    switch (this.props.board[square.rank][square.file]) {
       case 'K':
       case 'G':
       case 'E':
@@ -104,7 +95,7 @@ var Board = React.createClass({
       case 'H':
       case 'P':
       case 'Q':
-        return this.state.myColor == 'black';
+        return this.props.myColor == 'black';
         break;
       case 'k':
       case 'g':
@@ -113,7 +104,7 @@ var Board = React.createClass({
       case 'h':
       case 'p':
       case 'q':
-        return this.state.myColor == 'red';
+        return this.props.myColor == 'red';
         break;
       default:
         return undefined;
@@ -130,7 +121,7 @@ NotationToCss = {
   'P' : 'black-pawn',
   'Q' : 'black-cannon',
   'k' : 'red-king',
-  'g' : 'red-gaurd',
+  'g' : 'red-guard',
   'e' : 'red-elephant',
   'c' : 'red-cart',
   'h' : 'red-horse',

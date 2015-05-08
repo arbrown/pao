@@ -30,6 +30,12 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if game, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
 			game.join(w, r)
+		} else {
+			// make the id requested
+			g := newGame(id)
+			fmt.Printf("Made new game %s\n", id)
+			gh.games[g.id] = g
+			g.join(w, r)
 		}
 	} else {
 		// no id specified, make the game

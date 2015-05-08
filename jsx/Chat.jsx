@@ -12,17 +12,17 @@ var ChatMessage = React.createClass({
 var Chat = React.createClass({
   submitChat: function(e){
     e.preventDefault();
+    var message = this.state.chatMessage;
     console.log("User sent chat message: " + this.state.chatMessage);
-    var messages = this.state.messages;
-    messages.push({player: "Drew", text:this.state.chatMessage});
-    this.setState({chatMessage: null, messages});
+    !this.props.submitChat || this.props.submitChat(message);
+    this.setState({chatMessage: null})
   },
   changeMessage: function(){
     var message = this.refs.chatInput.getDOMNode().value;
     this.setState({chatMessage: message});
   },
   render: function() {
-    var messages = this.state.messages.map(function(message, i){
+    var messages = this.props.chats.map(function(message, i){
       return (<ChatMessage key={i} player={message.player} text={message.text} />);
     });
     return(
@@ -43,7 +43,6 @@ var Chat = React.createClass({
   },
   getInitialState: function() {
     return {
-      messages :[{text: "Foo"}, {text: "Bar"}]
     };
   },
 })
