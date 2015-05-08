@@ -22,6 +22,7 @@ type game struct {
 	pieceToInt                map[string]int
 	canAttack                 [][]bool
 	gameOverChan              chan bool
+	removeGameChan            chan *game
 }
 
 var upgrader = &websocket.Upgrader{
@@ -32,7 +33,7 @@ var upgrader = &websocket.Upgrader{
 	},
 }
 
-func (g *game) join(w http.ResponseWriter, r *http.Request) bool {
+func (g *game) join(w http.ResponseWriter, r *http.Request, name string) bool {
 	//fmt.Printf("w=%+v\nr=%+v\n", w, r)
 	fmt.Printf("upgrader= %+v\n", upgrader)
 	if g.currentPlayer == nil {
@@ -40,7 +41,7 @@ func (g *game) join(w http.ResponseWriter, r *http.Request) bool {
 		if err != nil {
 			fmt.Printf("Err = %v\n", err.Error())
 		}
-		g.currentPlayer = newPlayer(conn, g)
+		g.currentPlayer = newPlayer(conn, g, name)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.currentPlayer)
 		go g.startGame()
@@ -54,7 +55,7 @@ func (g *game) join(w http.ResponseWriter, r *http.Request) bool {
 			fmt.Printf("Error joining as #2: %v\n", err.Error())
 			return false
 		}
-		g.nextPlayer = newPlayer(conn, g)
+		g.nextPlayer = newPlayer(conn, g, name)
 		go g.listenPlayer(g.nextPlayer)
 		return true
 	}
@@ -62,6 +63,10 @@ func (g *game) join(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (g *game) startGame() {
+	defer func() {
+		fmt.Println("Removing game from list")
+		g.removeGameChan <- g
+	}()
 	fmt.Println("game loop started")
 	defer func() { fmt.Println("game loop ended") }()
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -88,7 +93,11 @@ func (g *game) handleCommand(c playerCommand) {
 	// }
 	switch c.c.Action {
 	case "chat":
-		g.broadcastChat(c.p.name, c.c.Argument)
+		color := "black"
+		if c.p == g.red {
+			color = "red"
+		}
+		g.broadcastChat(c.p.name, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
 	case "move":
@@ -116,8 +125,8 @@ func (g *game) broadcastBoard() {
 	}
 }
 
-func (g *game) broadcastChat(from, message string) {
-	chat := chatCommand{Action: "chat", Player: from, Message: message}
+func (g *game) broadcastChat(from, message, color string) {
+	chat := chatCommand{Action: "chat", Player: from, Message: message, Color: color}
 	//b, _ := json.Marshal(chat)
 	//r := command{Action: "chat", Argument: string(b)}
 	g.broadcast(chat)
@@ -170,7 +179,7 @@ func (g *game) broadcastColors() {
 }
 
 func (g *game) listenPlayer(p *player) {
-	fmt.Printf("Listening to new player in game %s\n", g.id)
+	fmt.Printf("Listening to new player {%+v} in game %s\n", p, g.id)
 	for {
 		var com command
 		err := p.ws.ReadJSON(&com)
@@ -193,16 +202,18 @@ func (g *game) listenPlayer(p *player) {
 	}
 	fmt.Println("Stopping listen loop")
 	p.ws.Close()
+	g.endGame()
 }
 
-func newGame(id string) *game {
+func newGame(id string, removeGameChan chan *game) *game {
 	return &game{
-		id:           id,
-		black:        nil,
-		red:          nil,
-		active:       false,
-		commandChan:  make(chan playerCommand),
-		gameOverChan: make(chan bool),
+		id:             id,
+		black:          nil,
+		red:            nil,
+		active:         false,
+		commandChan:    make(chan playerCommand),
+		gameOverChan:   make(chan bool),
+		removeGameChan: removeGameChan,
 		remainingPieces: []string{
 			"K", "k",
 			"G", "G", "g", "g",

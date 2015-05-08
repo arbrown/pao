@@ -2,13 +2,16 @@ var Game = React.createClass({
   render: function(){
     return(
      <div>
-       <h2>{this.state.myTurn? "My Turn":"Not My Turn"}</h2>
+       <GameState myTurn={this.state.myTurn}
+                  gameOver={this.state.gameOver}
+                  Won={this.state.won}
+                  myColor={this.state.myColor}/>
        <Board
           board={this.state.board} myTurn={this.state.myTurn}
           sendMove={this.sendMove}
           myColor={this.state.myColor} />
        <Chat submitChat={this.submitChat} chats={this.state.chats} />
-       <button className="reset-button" onClick={this.resetGame}>Reset Game</button>
+      <button className="goBackButton"><a href="/">Go back to lobby</a></button>
      </div>
     )
   },
@@ -29,11 +32,19 @@ var Game = React.createClass({
   componentDidMount: function() {
     this.connect();
     this.ws.onopen = this.askForBoard
+    React.unmountComponentAtNode(document.getElementById('lobby'));
   },
   connect: function(){
+    var params = {name: this.props.name, id: this.props.id}
     var addr = "ws://" +
           document.location.host +
-          "/game?id=20" ;
+          "/game?";
+    for (var key in params){
+      if (params.hasOwnProperty(key) && params[key]){
+        addr += key + "=" + params[key] + "&"
+      }
+    }
+
     var ws = new WebSocket(addr);
     ws.onmessage = this.handleMessage
     this.ws = ws;
@@ -59,6 +70,9 @@ var Game = React.createClass({
       case 'color':
         this.handleColor(data);
         break;
+      case 'gameover':
+        this.handleGameOver(data);
+        break;
       default:
         console.log("I don't know what to do with this...");
         console.log(data);
@@ -69,12 +83,15 @@ var Game = React.createClass({
   },
   handleChat: function(chatCommand){
     var chats = this.state.chats;
-    chats.push({person: chatCommand.Person, text: chatCommand.Message})
+    chats.push({player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color})
     this.setState({chats});
   },
   handleColor: function(colorCommand){
     var myColor = colorCommand.Color;
     this.setState({myColor})
+  },
+  handleGameOver: function(gameOverCommand){
+    this.setState({myTurn: false, gameOver: true, won: gameOverCommand.YouWin});
   },
   getInitialState: function() {
     return {
@@ -90,7 +107,40 @@ var Game = React.createClass({
   },
 });
 
-React.render(
-  React.createElement(Game, null),
-  document.getElementById('game')
-);
+var GameState= React.createClass({
+  render: function(){
+    var header = []
+    if (this.props.gameOver){
+      header.push(<h2 className="game-info-header">Game Over</h2>);
+      if (this.props.won){
+        header.push(<h3 className="game-info-subheader">You win!</h3>)
+      }
+      else {
+        header.push(<h3 className="game-info-subheader">You lose.</h3>)
+      }
+    }
+    else if (this.props.myTurn) {
+      header.push(<h2>Your Turn</h2>)
+    } else {
+      header.push(<h2>Opponent's Turn</h2>)
+    }
+    var cannon;
+    if (this.props.myColor == "red"){
+      cannon = <div className="banner-piece banqi-square red-cannon" />
+    } else {
+      cannon = <div className="banner-piece banqi-square black-cannon" />
+    }
+    return (
+      <div className="game-state-banner">
+        {cannon}
+        {header}
+        {cannon}
+      </div>
+    )
+  }
+});
+
+// React.render(
+//   React.createElement(Game, null),
+//   document.getElementById('game')
+// );

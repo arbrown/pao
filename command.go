@@ -10,7 +10,7 @@ type playerCommand struct {
 }
 
 type chatCommand struct {
-	Action, Player, Message string
+	Action, Player, Color, Message string
 }
 
 type boardCommand struct {

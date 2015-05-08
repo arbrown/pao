@@ -2,7 +2,8 @@ var ChatMessage = React.createClass({
   render: function(){
     return(
       <div className="chat-message">
-        <strong>{this.props.player}: </strong>
+        <strong style={{color: this.props.color}}>{this.props.player}</strong>:
+        <br/>
         <p>{this.props.text}</p>
       </div>
     );
@@ -23,7 +24,7 @@ var Chat = React.createClass({
   },
   render: function() {
     var messages = this.props.chats.map(function(message, i){
-      return (<ChatMessage key={i} player={message.player} text={message.text} />);
+      return (<ChatMessage key={i} player={message.player} text={message.text} color={message.color}/>);
     });
     return(
       <div className="chat">

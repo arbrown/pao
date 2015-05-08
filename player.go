@@ -4,10 +4,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func newPlayer(c *websocket.Conn, g *game) *player {
+func newPlayer(c *websocket.Conn, g *game, name string) *player {
 	return &player{
-		ws: c,
-		g:  g,
+		ws:   c,
+		g:    g,
+		name: name,
 	}
 }
 
