@@ -21,7 +21,7 @@ Pieces are represented by the letters in the following table
 | Pawn  | p   | P     |
 | Canon | q   | Q     |
 
-Uncovered pieces are represented by '?' and empty squares are ' '.
+Uncovered pieces are represented by '?' and empty squares are '.'.
 
 ### Board
 The board is represented as an 8x4 (8 columns, 4 rows) board with coordinates as follows:
