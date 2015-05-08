@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"time"
@@ -18,6 +19,9 @@ type game struct {
 	active                    bool
 	commandChan               chan playerCommand
 	currentPlayer, nextPlayer *player
+	pieceToInt                map[string]int
+	canAttack                 [][]bool
+	gameOverChan              chan bool
 }
 
 var upgrader = &websocket.Upgrader{
@@ -59,6 +63,7 @@ func (g *game) join(w http.ResponseWriter, r *http.Request) bool {
 
 func (g *game) startGame() {
 	fmt.Println("game loop started")
+	defer func() { fmt.Println("game loop ended") }()
 	rand.Seed(time.Now().UTC().UnixNano())
 	g.knownBoard = generateUnknownBoard()
 	for {
@@ -66,6 +71,9 @@ func (g *game) startGame() {
 		case c := <-g.commandChan:
 			// handle p1 move
 			g.handleCommand(c)
+			break
+		case _ = <-g.gameOverChan:
+			return
 		}
 	}
 
@@ -85,6 +93,11 @@ func (g *game) handleCommand(c playerCommand) {
 		g.broadcastBoard()
 	case "move":
 		if ok := g.tryMove(c); ok {
+			// check for a victory
+			if winner, won := g.checkVictory(); won {
+				g.broadcastVictory(winner)
+				g.endGame()
+			}
 			// move successful, swap players
 			g.currentPlayer, g.nextPlayer = g.nextPlayer, g.currentPlayer
 			g.broadcastBoard()
@@ -110,6 +123,31 @@ func (g *game) broadcastChat(from, message string) {
 	g.broadcast(chat)
 }
 
+func (g *game) broadcastVictory(victor *player) {
+	if victor != nil && victor.ws != nil {
+		c := gameOverCommand{Action: "gameover", Message: "You win!", YouWin: true}
+		victor.ws.WriteJSON(c)
+	}
+	lose := gameOverCommand{Action: "gameover", Message: "You lose!", YouWin: false}
+	if g.red == victor && g.black != nil {
+		g.black.ws.WriteJSON(lose)
+	}
+	if g.black == victor && g.red != nil {
+		g.red.ws.WriteJSON(lose)
+	}
+}
+
+func (g *game) endGame() {
+	// just close the web sockets and channels
+	if g.red != nil {
+		g.red.ws.Close()
+	}
+	if g.black != nil {
+		g.black.ws.Close()
+	}
+	g.gameOverChan <- true
+}
+
 func (g *game) broadcast(v interface{}) {
 	if g.currentPlayer != nil {
 		g.currentPlayer.ws.WriteJSON(v)
@@ -132,7 +170,7 @@ func (g *game) broadcastColors() {
 }
 
 func (g *game) listenPlayer(p *player) {
-	//fmt.Printf("Listening to new player in game %s\n", g.id)
+	fmt.Printf("Listening to new player in game %s\n", g.id)
 	for {
 		var com command
 		err := p.ws.ReadJSON(&com)
@@ -153,21 +191,18 @@ func (g *game) listenPlayer(p *player) {
 			// }
 		}
 	}
+	fmt.Println("Stopping listen loop")
 	p.ws.Close()
-	g.quit()
-}
-
-func (g *game) quit() {
-	close(g.commandChan)
 }
 
 func newGame(id string) *game {
 	return &game{
-		id:          id,
-		black:       nil,
-		red:         nil,
-		active:      false,
-		commandChan: make(chan playerCommand),
+		id:           id,
+		black:        nil,
+		red:          nil,
+		active:       false,
+		commandChan:  make(chan playerCommand),
+		gameOverChan: make(chan bool),
 		remainingPieces: []string{
 			"K", "k",
 			"G", "G", "g", "g",
@@ -176,6 +211,21 @@ func newGame(id string) *game {
 			"H", "H", "h", "h",
 			"P", "P", "P", "P", "P", "Q", "Q",
 			"p", "p", "p", "p", "p", "q", "q"},
+		pieceToInt: map[string]int{
+			"K": 6, "k": 6, "G": 5, "g": 5,
+			"E": 4, "e": 4, "C": 3, "c": 3,
+			"H": 2, "h": 2, "P": 1, "p": 1,
+			"Q": 0, "q": 0,
+		},
+		canAttack: [][]bool{
+			{true, true, true, true, true, true, true},      // Cannon
+			{false, true, false, false, false, false, true}, // Pawn
+			{true, true, true, false, false, false, false},  // Horse
+			{true, true, true, true, false, false, false},   // Cart
+			{true, true, true, true, true, false, false},    // Elephant
+			{true, true, true, true, true, true, false},     // Guard
+			{true, false, true, true, true, true, true},     // King
+		},
 	}
 }
 
@@ -234,18 +284,102 @@ func (g *game) flip(m *move) bool {
 
 func (g *game) performMove(m *move) bool {
 	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
-	if !g.currentPlayerOwns(srcRank, srcFile) {
+	if !g.currentPlayerOwns(srcRank, srcFile) || g.currentPlayerOwns(tgtRank, tgtFile) {
 		return false
 	}
-	if tgtFile == tgtRank {
-		return false
-	}
-	srcPiece, _ := g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile]
 
-	// for now, just perform the move without checking to see if it is fair
+	srcPiece, tgtPiece := g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile]
+	if tgtPiece != "." {
+		// Not an empty space, need to check if we can attack it
+		if tgtPiece == "?" {
+			// trying to attack an unflipped piece?  You monster!
+			return false
+		}
+		srcPower, tgtPower := g.pieceToInt[srcPiece], g.pieceToInt[tgtPiece]
+		if !g.canAttack[srcPower][tgtPower] {
+			return false
+		}
+	}
+
+	// validate the legality of the move
+	if (srcPiece != "Q" && srcPiece != "q") || tgtPiece == "." {
+		// no cannon attack involved, move must be directly adjacent
+		if (math.Abs(float64(srcRank-tgtRank)) + math.Abs(float64(srcFile-tgtFile))) != 1 {
+			// invalid move
+			return false
+		}
+	} else {
+		// now the harder part
+		moveRank, moveFile := srcRank-tgtRank, srcFile-tgtFile
+		// One of those should be 0
+		if moveRank != 0 && moveFile != 0 {
+			// diagonal cannon shot... very sneaky
+			return false
+		}
+		// walk from one end to the other, expecting one piece exactly
+		hopped := 0
+		if moveRank != 0 {
+			for i := math.Min(float64(srcRank), float64(tgtRank)) + 1; i < math.Max(float64(srcRank), float64(tgtRank)); i++ {
+				if g.knownBoard[int(i)][srcFile] != "." {
+					hopped++
+				}
+			} // Can SOMEONE explain to me the need for all the casting???
+		} else {
+			for i := math.Min(float64(srcFile), float64(tgtFile)) + 1; i < math.Max(float64(srcFile), float64(tgtFile)); i++ {
+				if g.knownBoard[srcRank][int(i)] != "." {
+					hopped++
+				}
+			}
+		}
+		if hopped != 1 {
+			return false
+		}
+	}
+
+	// at this point you should be able to make a move... I hope
 	g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile] = ".", srcPiece
 
 	return true
+}
+
+func (g *game) checkVictory() (victor *player, won bool) {
+	defer func() {
+		fmt.Printf("Game over =%v because:\n", won)
+		fmt.Printf("remainingPieces: %v\n", g.remainingPieces)
+	}()
+	// is black out of pieces?
+	blackRemains, redRemains := false, false
+	for i := 0; i < 4 && !(blackRemains && redRemains); i++ {
+		for j := 0; j < 8 && !(blackRemains && redRemains); j++ {
+			p := g.knownBoard[i][j]
+			redRemains = redRemains || isRed(p)
+			blackRemains = blackRemains || isBlack(p)
+			//fmt.Printf("Examined {%v}.  Red: %v Black %v\n", p, isRed(p), isBlack(p))
+		}
+	}
+
+	for _, p := range g.remainingPieces {
+		if redRemains && blackRemains {
+			break
+		}
+		redRemains = redRemains || isRed(p)
+		blackRemains = blackRemains || isBlack(p)
+	}
+
+	if redRemains && !blackRemains {
+		victor = g.red
+		won = true
+		return
+	}
+	if blackRemains && !redRemains {
+		victor = g.black
+		won = true
+		return
+	}
+	fmt.Printf("redRemains: %v, blackRemains:%v\n", redRemains, blackRemains)
+	victor = nil
+	won = false
+	return
 }
 
 func (g *game) currentPlayerOwns(rank, file int) bool {
@@ -254,6 +388,23 @@ func (g *game) currentPlayerOwns(rank, file int) bool {
 		return g.currentPlayer == g.black
 	case "k", "g", "e", "c", "h", "p", "q":
 		return g.currentPlayer == g.red
+	default:
+		return false
+	}
+}
+
+func isRed(piece string) bool {
+	switch piece {
+	case "k", "g", "e", "c", "h", "p", "q":
+		return true
+	default:
+		return false
+	}
+}
+func isBlack(piece string) bool {
+	switch piece {
+	case "K", "G", "E", "C", "H", "P", "Q":
+		return true
 	default:
 		return false
 	}

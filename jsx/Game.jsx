@@ -33,7 +33,7 @@ var Game = React.createClass({
   connect: function(){
     var addr = "ws://" +
           document.location.host +
-          "/game?id=1" ;
+          "/game?id=20" ;
     var ws = new WebSocket(addr);
     ws.onmessage = this.handleMessage
     this.ws = ws;

@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math"
 )
 
 type move struct {
@@ -46,8 +45,9 @@ func (m *move) isValid() bool {
 	if srcFile > 7 || srcRank > 3 || tgtRank > 3 || tgtFile > 7 {
 		return false
 	}
-	if math.Abs(float64(srcFile-tgtFile)) > 1 || math.Abs(float64(srcRank-tgtRank)) > 1 {
-		return false
-	}
+	// if math.Abs(float64(srcFile-tgtFile)) > 1 || math.Abs(float64(srcRank-tgtRank)) > 1 {
+	// 	return false
+	// }
+	//This depends on what the pieces are.  Going to add legal move validation later
 	return true
 }

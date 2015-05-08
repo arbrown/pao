@@ -27,6 +27,7 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(id)
 	if id != "" {
 		// Does the game exist?
+		fmt.Printf("All Games: %v\n", gh.games)
 		if game, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
 			game.join(w, r)

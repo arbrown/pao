@@ -22,3 +22,8 @@ type boardCommand struct {
 type colorCommand struct {
 	Action, Color string
 }
+
+type gameOverCommand struct {
+	Action, Message string
+	YouWin          bool
+}
