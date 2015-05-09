@@ -104,6 +104,7 @@ func (g *game) handleCommand(c playerCommand) {
 		if ok := g.tryMove(c); ok {
 			// check for a victory
 			if winner, won := g.checkVictory(); won {
+				g.broadcastBoard()
 				g.broadcastVictory(winner)
 				g.endGame()
 			}
@@ -133,15 +134,20 @@ func (g *game) broadcastChat(from, message, color string) {
 }
 
 func (g *game) broadcastVictory(victor *player) {
+	fmt.Printf("I think the victor is: %+v\n", victor)
 	if victor != nil && victor.ws != nil {
+		fmt.Println("I told the victor he won")
 		c := gameOverCommand{Action: "gameover", Message: "You win!", YouWin: true}
 		victor.ws.WriteJSON(c)
 	}
 	lose := gameOverCommand{Action: "gameover", Message: "You lose!", YouWin: false}
+	fmt.Printf("Victor: %+v, red: %+v, black: %+v\n", victor, g.red, g.black)
 	if g.red == victor && g.black != nil {
+		fmt.Println("I told black he lost")
 		g.black.ws.WriteJSON(lose)
 	}
 	if g.black == victor && g.red != nil {
+		fmt.Println("I told red he lost")
 		g.red.ws.WriteJSON(lose)
 	}
 }

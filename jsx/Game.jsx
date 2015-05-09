@@ -4,7 +4,7 @@ var Game = React.createClass({
      <div>
        <GameState myTurn={this.state.myTurn}
                   gameOver={this.state.gameOver}
-                  Won={this.state.won}
+                  won={this.state.won}
                   myColor={this.state.myColor}/>
        <Board
           board={this.state.board} myTurn={this.state.myTurn}
@@ -109,20 +109,20 @@ var Game = React.createClass({
 
 var GameState= React.createClass({
   render: function(){
-    var header = []
+    var headers = []
     if (this.props.gameOver){
-      header.push(<h2 className="game-info-header">Game Over</h2>);
+      headers.push(<h2 className="game-info-header">Game Over</h2>);
       if (this.props.won){
-        header.push(<h3 className="game-info-subheader">You win!</h3>)
+        headers.push(<h3 className="game-info-subheader">You win!</h3>)
       }
       else {
-        header.push(<h3 className="game-info-subheader">You lose.</h3>)
+        headers.push(<h3 className="game-info-subheader">You lose.</h3>)
       }
     }
     else if (this.props.myTurn) {
-      header.push(<h2>Your Turn</h2>)
+      headers.push(<h2>Your Turn</h2>)
     } else {
-      header.push(<h2>Opponent's Turn</h2>)
+      headers.push(<h2>Opponent's Turn</h2>)
     }
     var cannon;
     if (this.props.myColor == "red"){
@@ -133,7 +133,9 @@ var GameState= React.createClass({
     return (
       <div className="game-state-banner">
         {cannon}
-        {header}
+        <div className="headers">
+          {headers}
+        </div>
         {cannon}
       </div>
     )

@@ -33,15 +33,28 @@ td.banqi-square.selected{
 }
 
 .game-state-banner .banqi-square {
-  height:30px;
-  width: 30px;
+  height:45px;
+  width: 45px;
   background-size:cover;
   display:inline-block;
+}
+
+.game-state-banner div.banners h3,h2 {
+  margin:5px
   vertical-align:middle;
+  text-align: center;
+}
+
+.game-state-banner div.headers{
+  display: inline-block;
 }
 .game-state-banner h2 {
   display: inline-block;
-  vertical-align:middle;
+
+}
+.game-state-banner h3 {
+  text-align: center;
+
 }
 
 div.lobby-game {
