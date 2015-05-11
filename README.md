@@ -11,7 +11,7 @@ Installing Pao
 `go get github.com/arbrown/pao` ![go get](./screenshots/go-get.png)  
 You can fork this repository and `go get` your own version to contribute changes upstream.
 3. Go to the path where the source was installed, and run pao.go
-~[go run](./screenshots/go-run.png)  
+![go run](./screenshots/go-run.png)  
 The server should begin running on port 2015.  Go to http://localhost:2015/ in a web browser to see the lobby.
 
 Joining a game
