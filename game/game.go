@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"encoding/json"
@@ -11,18 +11,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type game struct {
-	id                        string
+// Game is a struct that represents the state and connections of a multiplayer
+// ban chi game that the server is hosting.
+type Game struct {
+	ID                        string
 	black, red                *player
 	knownBoard                [][]string
 	remainingPieces           []string
 	active                    bool
 	commandChan               chan playerCommand
-	currentPlayer, nextPlayer *player
+	CurrentPlayer, NextPlayer *player
 	pieceToInt                map[string]int
 	canAttack                 [][]bool
 	gameOverChan              chan bool
-	removeGameChan            chan *game
+	removeGameChan            chan *Game
 }
 
 var upgrader = &websocket.Upgrader{
@@ -33,20 +35,21 @@ var upgrader = &websocket.Upgrader{
 	},
 }
 
-func (g *game) join(w http.ResponseWriter, r *http.Request, name string) bool {
+// Join causes a connection to join a game as a websocket and player
+func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
 	//fmt.Printf("w=%+v\nr=%+v\n", w, r)
 	fmt.Printf("upgrader= %+v\n", upgrader)
-	if g.currentPlayer == nil {
+	if g.CurrentPlayer == nil {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			fmt.Printf("Err = %v\n", err.Error())
 		}
-		g.currentPlayer = newPlayer(conn, g, name)
+		g.CurrentPlayer = newPlayer(conn, g, name)
 		fmt.Println("Joined as #1")
-		go g.listenPlayer(g.currentPlayer)
+		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
 		return true
-	} else if g.nextPlayer == nil {
+	} else if g.NextPlayer == nil {
 		fmt.Println("Trying to join as #2")
 		conn, err := upgrader.Upgrade(w, r, nil)
 		fmt.Println("WS upgraded...")
@@ -55,14 +58,14 @@ func (g *game) join(w http.ResponseWriter, r *http.Request, name string) bool {
 			fmt.Printf("Error joining as #2: %v\n", err.Error())
 			return false
 		}
-		g.nextPlayer = newPlayer(conn, g, name)
-		go g.listenPlayer(g.nextPlayer)
+		g.NextPlayer = newPlayer(conn, g, name)
+		go g.listenPlayer(g.NextPlayer)
 		return true
 	}
 	return false
 }
 
-func (g *game) startGame() {
+func (g *Game) startGame() {
 	defer func() {
 		fmt.Println("Removing game from list")
 		g.removeGameChan <- g
@@ -84,7 +87,7 @@ func (g *game) startGame() {
 
 }
 
-func (g *game) handleCommand(c playerCommand) {
+func (g *Game) handleCommand(c playerCommand) {
 	fmt.Printf("Got command: %+v\n", c)
 	// if g.currentPlayer != c.p {
 	// 	r := command{Action: "info", Argument: "Not your turn!"}
@@ -97,7 +100,7 @@ func (g *game) handleCommand(c playerCommand) {
 		if c.p == g.red {
 			color = "red"
 		}
-		g.broadcastChat(c.p.name, c.c.Argument, color)
+		g.broadcastChat(c.p.Name, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
 	case "move":
@@ -109,31 +112,31 @@ func (g *game) handleCommand(c playerCommand) {
 				g.endGame()
 			}
 			// move successful, swap players
-			g.currentPlayer, g.nextPlayer = g.nextPlayer, g.currentPlayer
+			g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
 			g.broadcastBoard()
 		}
 	}
 }
 
-func (g *game) broadcastBoard() {
-	r := boardCommand{Action: "board", Board: g.knownBoard, YourTurn: g.nextPlayer != nil}
-	if g.currentPlayer != nil {
-		g.currentPlayer.ws.WriteJSON(r)
+func (g *Game) broadcastBoard() {
+	r := boardCommand{Action: "board", Board: g.knownBoard, YourTurn: g.NextPlayer != nil}
+	if g.CurrentPlayer != nil {
+		g.CurrentPlayer.ws.WriteJSON(r)
 	}
-	if g.nextPlayer != nil {
+	if g.NextPlayer != nil {
 		r.YourTurn = false
-		g.nextPlayer.ws.WriteJSON(r)
+		g.NextPlayer.ws.WriteJSON(r)
 	}
 }
 
-func (g *game) broadcastChat(from, message, color string) {
+func (g *Game) broadcastChat(from, message, color string) {
 	chat := chatCommand{Action: "chat", Player: from, Message: message, Color: color}
 	//b, _ := json.Marshal(chat)
 	//r := command{Action: "chat", Argument: string(b)}
 	g.broadcast(chat)
 }
 
-func (g *game) broadcastVictory(victor *player) {
+func (g *Game) broadcastVictory(victor *player) {
 	fmt.Printf("I think the victor is: %+v\n", victor)
 	if victor != nil && victor.ws != nil {
 		fmt.Println("I told the victor he won")
@@ -152,7 +155,7 @@ func (g *game) broadcastVictory(victor *player) {
 	}
 }
 
-func (g *game) endGame() {
+func (g *Game) endGame() {
 	// just close the web sockets and channels
 	if g.red != nil {
 		g.red.ws.Close()
@@ -163,16 +166,16 @@ func (g *game) endGame() {
 	g.gameOverChan <- true
 }
 
-func (g *game) broadcast(v interface{}) {
-	if g.currentPlayer != nil {
-		g.currentPlayer.ws.WriteJSON(v)
+func (g *Game) broadcast(v interface{}) {
+	if g.CurrentPlayer != nil {
+		g.CurrentPlayer.ws.WriteJSON(v)
 	}
-	if g.nextPlayer != nil {
-		g.nextPlayer.ws.WriteJSON(v)
+	if g.NextPlayer != nil {
+		g.NextPlayer.ws.WriteJSON(v)
 	}
 }
 
-func (g *game) broadcastColors() {
+func (g *Game) broadcastColors() {
 	color := colorCommand{Action: "color", Color: "red"}
 	fmt.Printf("Want to broadcast colors to:\n%+v\n%+v\n", g.red, g.black)
 	if g.red != nil && g.red.ws != nil {
@@ -184,8 +187,8 @@ func (g *game) broadcastColors() {
 	}
 }
 
-func (g *game) listenPlayer(p *player) {
-	fmt.Printf("Listening to new player {%+v} in game %s\n", p, g.id)
+func (g *Game) listenPlayer(p *player) {
+	fmt.Printf("Listening to new player {%+v} in game %s\n", p, g.ID)
 	for {
 		var com command
 		err := p.ws.ReadJSON(&com)
@@ -211,9 +214,10 @@ func (g *game) listenPlayer(p *player) {
 	g.endGame()
 }
 
-func newGame(id string, removeGameChan chan *game) *game {
-	return &game{
-		id:             id,
+//NewGame returns a newly initialized game struct
+func NewGame(id string, removeGameChan chan *Game) *Game {
+	return &Game{
+		ID:             id,
 		black:          nil,
 		red:            nil,
 		active:         false,
@@ -246,8 +250,8 @@ func newGame(id string, removeGameChan chan *game) *game {
 	}
 }
 
-func (g *game) tryMove(pc playerCommand) bool {
-	if pc.p != g.currentPlayer {
+func (g *Game) tryMove(pc playerCommand) bool {
+	if pc.p != g.CurrentPlayer {
 		return false
 	}
 	move, err := parseMove(pc.c.Argument)
@@ -270,7 +274,7 @@ func (g *game) tryMove(pc playerCommand) bool {
 	return true
 }
 
-func (g *game) flip(m *move) bool {
+func (g *Game) flip(m *move) bool {
 	srcFile, srcRank, _, _ := m.getCoords()
 	if g.knownBoard[srcRank][srcFile] != "?" {
 		//can't flip that!
@@ -286,12 +290,12 @@ func (g *game) flip(m *move) bool {
 		//First move! Assign colors based on piece
 		switch piece {
 		case "K", "G", "E", "C", "H", "P", "Q":
-			g.black = g.currentPlayer
-			g.red = g.nextPlayer
+			g.black = g.CurrentPlayer
+			g.red = g.NextPlayer
 			break
 		case "k", "g", "e", "c", "h", "p", "q":
-			g.red = g.currentPlayer
-			g.black = g.nextPlayer
+			g.red = g.CurrentPlayer
+			g.black = g.NextPlayer
 		}
 		g.broadcastColors()
 	}
@@ -299,7 +303,7 @@ func (g *game) flip(m *move) bool {
 	return true
 }
 
-func (g *game) performMove(m *move) bool {
+func (g *Game) performMove(m *move) bool {
 	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
 	if !g.currentPlayerOwns(srcRank, srcFile) || g.currentPlayerOwns(tgtRank, tgtFile) {
 		return false
@@ -359,7 +363,7 @@ func (g *game) performMove(m *move) bool {
 	return true
 }
 
-func (g *game) checkVictory() (victor *player, won bool) {
+func (g *Game) checkVictory() (victor *player, won bool) {
 	defer func() {
 		fmt.Printf("Game over =%v because:\n", won)
 		fmt.Printf("remainingPieces: %v\n", g.remainingPieces)
@@ -399,12 +403,12 @@ func (g *game) checkVictory() (victor *player, won bool) {
 	return
 }
 
-func (g *game) currentPlayerOwns(rank, file int) bool {
+func (g *Game) currentPlayerOwns(rank, file int) bool {
 	switch g.knownBoard[rank][file] {
 	case "K", "G", "E", "C", "H", "P", "Q":
-		return g.currentPlayer == g.black
+		return g.CurrentPlayer == g.black
 	case "k", "g", "e", "c", "h", "p", "q":
-		return g.currentPlayer == g.red
+		return g.CurrentPlayer == g.red
 	default:
 		return false
 	}

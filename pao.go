@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/arbrown/pao/game"
 )
 
 func main() {
 	fmt.Printf("Hello, Pao\n")
-	removeGameChan := make(chan *game)
-	games := make(map[string]*game)
+	removeGameChan := make(chan *game.Game)
+	games := make(map[string]*game.Game)
 	http.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
 	http.Handle("/listGames", listGamesHandler{games: games})
-	http.Handle("/", http.FileServer(http.Dir(".")))
+	http.Handle("/", http.FileServer(http.Dir("./client/")))
 
 	go func() {
 		for {
 			select {
 			case g := <-removeGameChan:
-				delete(games, g.id)
+				delete(games, g.ID)
 				break
 			}
 		}
@@ -32,12 +34,12 @@ func main() {
 }
 
 type gameHandler struct {
-	games          map[string]*game
-	removeGameChan chan *game
+	games          map[string]*game.Game
+	removeGameChan chan *game.Game
 }
 
 type listGamesHandler struct {
-	games map[string]*game
+	games map[string]*game.Game
 }
 
 type gameResponse struct {
@@ -49,11 +51,11 @@ func (lgh listGamesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var resp []gameResponse
 	for id, game := range lgh.games {
 		var players []string
-		if game.currentPlayer != nil {
-			players = append(players, game.currentPlayer.name)
+		if game.CurrentPlayer != nil {
+			players = append(players, game.CurrentPlayer.Name)
 		}
-		if game.nextPlayer != nil {
-			players = append(players, game.nextPlayer.name)
+		if game.NextPlayer != nil {
+			players = append(players, game.NextPlayer.Name)
 		}
 		resp = append(resp, gameResponse{ID: id, Players: players})
 	}
@@ -76,15 +78,15 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if id != "" {
 		// Does the game exist?
 		fmt.Printf("All Games: %v\n", gh.games)
-		if game, ok := gh.games[id]; ok {
+		if existingGame, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
-			game.join(w, r, name)
+			existingGame.Join(w, r, name)
 		} else {
 			// make the id requested
-			g := newGame(id, gh.removeGameChan)
+			g := game.NewGame(id, gh.removeGameChan)
 			fmt.Printf("Made new game %s\n", id)
-			gh.games[g.id] = g
-			g.join(w, r, name)
+			gh.games[g.ID] = g
+			g.Join(w, r, name)
 		}
 	} else {
 		// no id specified, make the game
@@ -92,9 +94,9 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, exists := gh.games[strconv.Itoa(newID)]; exists; _, exists = gh.games[strconv.Itoa(newID)] {
 			newID++
 		}
-		g := newGame(strconv.Itoa(newID), gh.removeGameChan)
+		g := game.NewGame(strconv.Itoa(newID), gh.removeGameChan)
 		fmt.Printf("Made new game %d\n", newID)
-		gh.games[g.id] = g
-		g.join(w, r, name)
+		gh.games[g.ID] = g
+		g.Join(w, r, name)
 	}
 }

@@ -1,20 +1,20 @@
-package main
+package game
 
 import (
 	"github.com/gorilla/websocket"
 )
 
-func newPlayer(c *websocket.Conn, g *game, name string) *player {
+func newPlayer(c *websocket.Conn, g *Game, name string) *player {
 	return &player{
 		ws:   c,
 		g:    g,
-		name: name,
+		Name: name,
 	}
 }
 
 type player struct {
-	name string
+	Name string
 
-	g  *game
+	g  *Game
 	ws *websocket.Conn
 }
