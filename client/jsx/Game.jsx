@@ -1,7 +1,7 @@
 var Game = React.createClass({
   render: function(){
     return(
-     <div>
+    <div>
        <GameState myTurn={this.state.myTurn}
                   gameOver={this.state.gameOver}
                   won={this.state.won}
@@ -10,9 +10,10 @@ var Game = React.createClass({
           board={this.state.board} myTurn={this.state.myTurn}
           sendMove={this.sendMove}
           myColor={this.state.myColor} />
-       <Chat submitChat={this.submitChat} chats={this.state.chats} />
+        <DeadPieces dead={this.state.dead}  />
+      <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
-     </div>
+    </div>
     )
   },
   sendMove: function(move){
@@ -79,7 +80,7 @@ var Game = React.createClass({
     }
   },
   handleBoard: function(boardCommand){
-    this.setState({board: boardCommand.Board, myTurn: boardCommand.YourTurn})
+    this.setState({board: boardCommand.Board, myTurn: boardCommand.YourTurn, dead: boardCommand.Dead})
   },
   handleChat: function(chatCommand){
     var chats = this.state.chats;
@@ -102,7 +103,8 @@ var Game = React.createClass({
       ['.','.','.','.','.','.','.','.',],
       ['.','.','.','.','.','.','.','.',]],
       myTurn:false,
-      myColor: null
+      myColor: null,
+      dead: []
     };
   },
 });

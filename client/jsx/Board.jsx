@@ -87,30 +87,27 @@ var Board = React.createClass({
     };
   },
   IOwn : function(square){
-    switch (this.props.board[square.rank][square.file]) {
-      case 'K':
-      case 'G':
-      case 'E':
-      case 'C':
-      case 'H':
-      case 'P':
-      case 'Q':
-        return this.props.myColor == 'black';
-        break;
-      case 'k':
-      case 'g':
-      case 'e':
-      case 'c':
-      case 'h':
-      case 'p':
-      case 'q':
-        return this.props.myColor == 'red';
-        break;
-      default:
-        return undefined;
-    }
+    var piece = this.props.board[square.rank][square.file];
+    return NotationToColor[piece] == this.props.myColor;
   }
 });
+
+NotationToColor = {
+  'K' : 'black',
+  'G' : 'black',
+  'E' : 'black',
+  'C' : 'black',
+  'H' : 'black',
+  'P' : 'black',
+  'Q' : 'black',
+  'k' : 'red',
+  'g' : 'red',
+  'e' : 'red',
+  'c' : 'red',
+  'h' : 'red',
+  'p' : 'red',
+  'q' : 'red',
+};
 
 NotationToCss = {
   'K' : 'black-king',
@@ -128,4 +125,4 @@ NotationToCss = {
   'p' : 'red-pawn',
   'q' : 'red-cannon',
   '?' : 'unflipped-piece'
-}
+};

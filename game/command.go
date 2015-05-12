@@ -16,6 +16,7 @@ type chatCommand struct {
 type boardCommand struct {
 	Action   string
 	Board    [][]string
+	Dead     []string
 	YourTurn bool
 }
 

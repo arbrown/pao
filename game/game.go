@@ -18,6 +18,7 @@ type Game struct {
 	black, red                *player
 	knownBoard                [][]string
 	remainingPieces           []string
+	deadPieces                []string
 	active                    bool
 	commandChan               chan playerCommand
 	CurrentPlayer, NextPlayer *player
@@ -119,7 +120,12 @@ func (g *Game) handleCommand(c playerCommand) {
 }
 
 func (g *Game) broadcastBoard() {
-	r := boardCommand{Action: "board", Board: g.knownBoard, YourTurn: g.NextPlayer != nil}
+	r := boardCommand{
+		Action:   "board",
+		Board:    g.knownBoard,
+		YourTurn: g.NextPlayer != nil,
+		Dead:     g.deadPieces}
+
 	if g.CurrentPlayer != nil {
 		g.CurrentPlayer.ws.WriteJSON(r)
 	}
@@ -232,6 +238,7 @@ func NewGame(id string, removeGameChan chan *Game) *Game {
 			"H", "H", "h", "h",
 			"P", "P", "P", "P", "P", "Q", "Q",
 			"p", "p", "p", "p", "p", "q", "q"},
+		deadPieces: make([]string, 0),
 		pieceToInt: map[string]int{
 			"K": 6, "k": 6, "G": 5, "g": 5,
 			"E": 4, "e": 4, "C": 3, "c": 3,
@@ -359,6 +366,10 @@ func (g *Game) performMove(m *move) bool {
 
 	// at this point you should be able to make a move... I hope
 	g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile] = ".", srcPiece
+	// add the target piece to dead piece if it was not an empty square
+	if tgtPiece != "." {
+		g.deadPieces = append(g.deadPieces, tgtPiece)
+	}
 
 	return true
 }
