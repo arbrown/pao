@@ -76,11 +76,11 @@ var LobbyGame = React.createClass({
       return (<li className="player">{player}</li>);
     });
     return (
-      <div className="lobby-game" onClick={this.props.onClick}>
+      <li className="lobby-game" onClick={this.props.onClick}>
         <div className="banqi-square red-cannon"/>
         <p>Current Players:</p>
         <ul>{playerList}</ul>
-      </div>);
+      </li>);
   },
 });
 
