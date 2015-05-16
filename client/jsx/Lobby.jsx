@@ -27,7 +27,7 @@ var Lobby = React.createClass({
         <h2>Pao Lobby</h2>
         <input type="text" ref="name" value={this.state.name} onChange={this.nameChanged} placeholder="Your Name" />
         <div className="lobby-current-games">
-          <h3>{gameCount} Current Games</h3>
+          <h3>{gameCount} Current Game{gameCount==1 ? "" : "s"}</h3>
           <ul className="games">
             {games}
           </ul>
