@@ -14,7 +14,7 @@ func main() {
 	fmt.Printf("Hello, Pao\n")
 	removeGameChan := make(chan *game.Game)
 	games := make(map[string]*game.Game)
-	httpMux, wsMux := http.NewServeMux(), http.NewServeMux()
+	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
 	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
@@ -34,6 +34,8 @@ func main() {
 	if port == "" {
 		port = "2015"
 	}
+
+	bind := fmt.Sprintf("%s:%s", host, port)
 
 	err := http.ListenAndServe(bind, httpMux)
 	if err != nil {
