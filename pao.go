@@ -17,8 +17,7 @@ func main() {
 	httpMux, wsMux := http.NewServeMux(), http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
 	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
-
-	wsMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
+	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
 
 	go func() {
 		for {
@@ -35,16 +34,6 @@ func main() {
 	if port == "" {
 		port = "2015"
 	}
-
-	// open shift requires web sockets to be on this port
-	wsPort := "8000"
-	bind := fmt.Sprintf("%s:%s", host, port)
-	wsBind := fmt.Sprintf("%s:%s", host, wsPort)
-
-	go func() {
-		fmt.Printf("Listening on %s\n", wsBind)
-		http.ListenAndServe(wsBind, wsMux)
-	}()
 
 	err := http.ListenAndServe(bind, httpMux)
 	if err != nil {
