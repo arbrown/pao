@@ -1,7 +1,7 @@
 pao
 ===
 
-A Ban Qi Game Server
+A [Banqi](http://en.wikipedia.org/wiki/Banqi) Game Server
 
 Installing Pao
 --------------
@@ -22,7 +22,7 @@ Then, another player can join your game and it will begin.
 ![join](./screenshots/join-existing.png)  
 Have fun!
 ![game](./screenshots/game2.png)  
-Ban Qi Game Notation
+Banqi Game Notation
 ---------------------
 The game code uses a character-based notation to store and transmit piece information.
 
@@ -65,4 +65,4 @@ If a player turned up a red cannon at B4, the notation would be:
     ?B4=qB4
 
 #### Theoretical variants
-In theory, in some game variants a ply could involve more than one piece (on either side) or multiple moves (as in double-move Ban Qi.)  In this case, multiple pieces (and their locations) are separated by commas (,) and multiple moves are separated by semicolons (;).
+In theory, in some game variants a ply could involve more than one piece (on either side) or multiple moves (as in double-move Banqi.)  In this case, multiple pieces (and their locations) are separated by commas (,) and multiple moves are separated by semicolons (;).
