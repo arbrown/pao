@@ -44,6 +44,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			fmt.Printf("Err = %v\n", err.Error())
+			return false
 		}
 		g.CurrentPlayer = newPlayer(conn, g, name)
 		fmt.Println("Joined as #1")
