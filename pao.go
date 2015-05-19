@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/arbrown/pao/game"
@@ -28,7 +29,13 @@ func main() {
 		}
 	}()
 
-	err := http.ListenAndServe(":2015", nil)
+	host, port := os.Getenv("HOST"), os.Getenv("PORT")
+	if port == "" {
+		port = "2015"
+	}
+	bind := fmt.Sprintf("%s:%s", host, port)
+
+	err := http.ListenAndServe(bind, nil)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())
 	}
