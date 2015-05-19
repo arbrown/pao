@@ -14,9 +14,11 @@ func main() {
 	fmt.Printf("Hello, Pao\n")
 	removeGameChan := make(chan *game.Game)
 	games := make(map[string]*game.Game)
-	http.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
-	http.Handle("/listGames", listGamesHandler{games: games})
-	http.Handle("/", http.FileServer(http.Dir("./client/")))
+	httpMux, wsMux := http.NewServeMux(), http.NewServeMux()
+	httpMux.Handle("/listGames", listGamesHandler{games: games})
+	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
+
+	wsMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
 
 	go func() {
 		for {
@@ -33,9 +35,17 @@ func main() {
 	if port == "" {
 		port = "2015"
 	}
-	bind := fmt.Sprintf("%s:%s", host, port)
 
-	err := http.ListenAndServe(bind, nil)
+	// open shift requires web sockets to be on this port
+	wsPort := "8000"
+	bind := fmt.Sprintf("%s:%s", host, port)
+	wsBind := fmt.Sprintf("%s:%s", host, wsPort)
+
+	go func() {
+		http.ListenAndServe(wsBind, wsMux)
+	}()
+
+	err := http.ListenAndServe(bind, httpMux)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())
 	}

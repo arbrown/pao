@@ -45,7 +45,9 @@ var Game = React.createClass({
   connect: function(){
     var params = {name: this.props.name, id: this.props.id}
     var addr = "ws://" +
-          document.location.host +
+          document.location.hostname +
+          // force port 8000 because of open shift's requirements (for now)
+          ":8000" +
           "/game?";
     for (var key in params){
       if (params.hasOwnProperty(key) && params[key]){
