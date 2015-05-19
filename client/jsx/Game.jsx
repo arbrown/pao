@@ -39,25 +39,33 @@ var Game = React.createClass({
   },
   componentDidMount: function() {
     this.connect();
-    this.ws.onopen = this.askForBoard
     React.unmountComponentAtNode(document.getElementById('lobby'));
   },
   connect: function(){
     var params = {name: this.props.name, id: this.props.id}
+    this.tryConnect("8000", params)
+    this.tryConnect(document.location.port, params)
+  },
+  tryConnect: function(port, params){
+
     var addr = "ws://" +
-          document.location.hostname +
-          // force port 8000 because of open shift's requirements (for now)
-          ":8000" +
-          "/game?";
+          document.location.hostname
+          + ':'
+          + port
+          + "/game?";
     for (var key in params){
       if (params.hasOwnProperty(key) && params[key]){
         addr += key + "=" + params[key] + "&"
       }
     }
-
     var ws = new WebSocket(addr);
-    ws.onmessage = this.handleMessage
-    this.ws = ws;
+
+    var comp = this;
+    ws.onopen = function(){
+      comp.ws = ws;
+      this.onmessage = comp.handleMessage
+      comp.askForBoard()
+    }
   },
   askForBoard: function(){
     if (this.ws){
