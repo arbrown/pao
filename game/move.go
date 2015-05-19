@@ -7,7 +7,7 @@ import (
 
 type move struct {
 	isFlip         bool
-	source, target string // in ban chi notation
+	source, target string // in ban qi notation
 }
 
 func parseMove(s string) (m *move, e error) {

@@ -1,7 +1,7 @@
 pao
 ===
 
-A Ban Chi Game Server
+A Ban Qi Game Server
 
 Installing Pao
 --------------
@@ -22,7 +22,7 @@ Then, another player can join your game and it will begin.
 ![join](./screenshots/join-existing.png)  
 Have fun!
 ![game](./screenshots/game2.png)  
-Ban Chi Game Notation
+Ban Qi Game Notation
 ---------------------
 The game code uses a character-based notation to store and transmit piece information.
 
@@ -53,7 +53,7 @@ The board is represented as an 8x4 (8 columns, 4 rows) board with coordinates as
 
 A location is referred to by its letter/number coordinates, for example, A1 or F3.
 
-### Plies 
+### Plies
 A ply consists of a piece identifier, a location, an action (moves '>', or becomes '=') followed by a piece identifier, and a location.  If a piece was killed in this ply, there is then an 'x' followed by the piece identifier and location of the killed piece.
 
 For example, if a black guard at C2 killed a red pawn at D2, the ply notation would be:
@@ -63,6 +63,6 @@ For example, if a black guard at C2 killed a red pawn at D2, the ply notation wo
 If a player turned up a red cannon at B4, the notation would be:
 
     ?B4=qB4
-    
+
 #### Theoretical variants
-In theory, in some game variants a ply could involve more than one piece (on either side) or multiple moves (as in double-move Ban Chi.)  In this case, multiple pieces (and their locations) are separated by commas (,) and multiple moves are separated by semicolons (;).
+In theory, in some game variants a ply could involve more than one piece (on either side) or multiple moves (as in double-move Ban Qi.)  In this case, multiple pieces (and their locations) are separated by commas (,) and multiple moves are separated by semicolons (;).

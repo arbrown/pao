@@ -12,7 +12,7 @@ import (
 )
 
 // Game is a struct that represents the state and connections of a multiplayer
-// ban chi game that the server is hosting.
+// ban qi game that the server is hosting.
 type Game struct {
 	ID                        string
 	black, red                *player

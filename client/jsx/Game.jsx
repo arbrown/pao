@@ -24,7 +24,7 @@ var Game = React.createClass({
     }
   },
   sendMove: function(move){
-    // sends a ban chi formatted move
+    // sends a ban qi formatted move
     // game will update us if it was valid
     if (this.ws){
       var command = {Action: "move", Argument: move};
