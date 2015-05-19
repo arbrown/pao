@@ -21,6 +21,7 @@ func main() {
 		for {
 			select {
 			case g := <-removeGameChan:
+				fmt.Printf("Removing game: %v\n", g.ID)
 				delete(games, g.ID)
 				break
 			}

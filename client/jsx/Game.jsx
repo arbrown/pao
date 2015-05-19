@@ -13,8 +13,15 @@ var Game = React.createClass({
         <DeadPieces dead={this.state.dead}  />
       <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
+      <button className="resignButton" onClick={this.resign}>Resign</button>
     </div>
     )
+  },
+  resign: function () {
+    if (this.ws){
+      var command = {Action: "resign"};
+      this.ws.send(JSON.stringify(command));
+    }
   },
   sendMove: function(move){
     // sends a ban chi formatted move

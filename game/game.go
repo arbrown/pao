@@ -65,23 +65,37 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
 	}
 	return false
 }
+func (g *Game) closeWebSockets() {
+	if g.red != nil {
+		g.red.ws.Close()
+	}
+	if g.black != nil {
+		g.black.ws.Close()
+	}
+}
 
 func (g *Game) startGame() {
 	defer func() {
 		fmt.Println("Removing game from list")
 		g.removeGameChan <- g
+		fmt.Println("Closing web sockets")
+		g.closeWebSockets()
 	}()
 	fmt.Println("game loop started")
 	defer func() { fmt.Println("game loop ended") }()
 	rand.Seed(time.Now().UTC().UnixNano())
 	g.knownBoard = generateUnknownBoard()
 	for {
+		fmt.Println("Listening!")
 		select {
 		case c := <-g.commandChan:
+			fmt.Println("Heard a command")
 			// handle p1 move
 			g.handleCommand(c)
+			fmt.Println("Done handling command")
 			break
 		case _ = <-g.gameOverChan:
+			fmt.Println("Got a message on gameOverChan")
 			return
 		}
 	}
@@ -110,13 +124,28 @@ func (g *Game) handleCommand(c playerCommand) {
 			if winner, won := g.checkVictory(); won {
 				g.broadcastBoard()
 				g.broadcastVictory(winner)
+				fmt.Println("Reporting end of game from handleCommand - move")
 				g.endGame()
+				fmt.Println("Trying to return from handle command")
+				return
 			}
 			// move successful, swap players
 			g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
 			g.broadcastBoard()
 		}
+	case "resign":
+		g.resign(c.p)
 	}
+}
+
+func (g *Game) resign(p *player) {
+	if p == g.CurrentPlayer {
+		g.broadcastVictory(g.NextPlayer)
+	} else {
+		g.broadcastVictory(g.CurrentPlayer)
+	}
+
+	g.endGame()
 }
 
 func (g *Game) broadcastBoard() {
@@ -162,14 +191,11 @@ func (g *Game) broadcastVictory(victor *player) {
 }
 
 func (g *Game) endGame() {
-	// just close the web sockets and channels
-	if g.red != nil {
-		g.red.ws.Close()
-	}
-	if g.black != nil {
-		g.black.ws.Close()
-	}
+	fmt.Println("GameOverChan <- true")
+	fmt.Printf("gameOverChan: %v\n", g.gameOverChan)
 	g.gameOverChan <- true
+	fmt.Println("Trying to return from endGame")
+	return
 }
 
 func (g *Game) broadcast(v interface{}) {
@@ -223,12 +249,13 @@ func (g *Game) listenPlayer(p *player) {
 //NewGame returns a newly initialized game struct
 func NewGame(id string, removeGameChan chan *Game) *Game {
 	return &Game{
-		ID:             id,
-		black:          nil,
-		red:            nil,
-		active:         false,
-		commandChan:    make(chan playerCommand),
-		gameOverChan:   make(chan bool),
+		ID:           id,
+		black:        nil,
+		red:          nil,
+		active:       false,
+		commandChan:  make(chan playerCommand),
+		gameOverChan: make(chan bool, 3), // I think this masks a bug
+		// but I'm not sure how to fix it atm...  I need a go expert.
 		removeGameChan: removeGameChan,
 		remainingPieces: []string{
 			"K", "k",
