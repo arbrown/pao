@@ -107,6 +107,8 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		g := game.NewGame(strconv.Itoa(newID), gh.removeGameChan)
 		fmt.Printf("Made new game %d\n", newID)
 		gh.games[g.ID] = g
-		g.Join(w, r, name)
+		if ok := g.Join(w, r, name); !ok {
+			delete(gh.games, g.ID)
+		}
 	}
 }
