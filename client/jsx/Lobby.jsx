@@ -24,6 +24,11 @@ var Lobby = React.createClass({
     var gameCount = games ? games.length : 0;
     return (
       <div className="lobby">
+        <span id="forkongithub">
+          <a href="https://github.com/arbrown/pao">
+            Fork me on GitHub
+          </a>
+        </span>
         <h2>Pao Lobby</h2>
         <input type="text" ref="name" value={this.state.name} onChange={this.nameChanged} placeholder="Your Name" />
         <div className="lobby-current-games">
