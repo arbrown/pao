@@ -224,7 +224,7 @@ func (g *Game) listenPlayer(p *player) {
 	for {
 		var com command
 		err := p.ws.ReadJSON(&com)
-		//fmt.Println("got a message?")
+		fmt.Println("got a message?")
 		if err != nil {
 			fmt.Printf("Error from player's messages: %v\n", err.Error())
 			break

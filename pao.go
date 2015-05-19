@@ -42,6 +42,7 @@ func main() {
 	wsBind := fmt.Sprintf("%s:%s", host, wsPort)
 
 	go func() {
+		fmt.Printf("Listening on %s\n", wsBind)
 		http.ListenAndServe(wsBind, wsMux)
 	}()
 
