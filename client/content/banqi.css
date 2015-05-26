@@ -8,6 +8,8 @@ table.banqi-board{
   border: 1px solid black;
   width:20%;
   vertical-align:top;
+  max-height: 500px;
+  overflow-y:scroll;
 }
 
 .chat-message p{
