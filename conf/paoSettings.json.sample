@@ -1,0 +1,6 @@
+{
+  "DbConfig" : {
+    "driver" : "postgres",
+    "connectionString" : "user=myUser password=myPassword sslmode=disable dbname=myDb"
+  }
+}

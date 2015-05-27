@@ -7,7 +7,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/arbrown/pao/db"
 	"github.com/arbrown/pao/game"
+	"github.com/arbrown/pao/settings"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -18,6 +21,17 @@ func main() {
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
 	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
+	s, err := settings.GetSettings()
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("Settings: %+v\n", s)
+	}
+	_, err = db.NewAuth(s)
+	if err != nil {
+		fmt.Println("Could not create auth")
+		fmt.Println(err.Error())
+	}
 
 	go func() {
 		for {
@@ -37,7 +51,7 @@ func main() {
 
 	bind := fmt.Sprintf("%s:%s", host, port)
 
-	err := http.ListenAndServe(bind, httpMux)
+	err = http.ListenAndServe(bind, httpMux)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())
 	}
