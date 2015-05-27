@@ -19,7 +19,6 @@ func main() {
 	games := make(map[string]*game.Game)
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
-	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
 	s, err := settings.GetSettings()
 	if err != nil {
@@ -27,11 +26,13 @@ func main() {
 	} else {
 		fmt.Printf("Settings: %+v\n", s)
 	}
-	_, err = db.NewAuth(s)
+	a, err := db.NewAuth(s)
 	if err != nil {
 		fmt.Println("Could not create auth")
 		fmt.Println(err.Error())
 	}
+	httpMux.HandleFunc("/login", a.PostLogin)
+	httpMux.HandleFunc("/register", a.PostRegister)
 
 	go func() {
 		for {
@@ -51,6 +52,7 @@ func main() {
 
 	bind := fmt.Sprintf("%s:%s", host, port)
 
+	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
 	err = http.ListenAndServe(bind, httpMux)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())

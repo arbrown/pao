@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -29,25 +30,54 @@ func NewAuth(s settings.PaoSettings) (a *Auth, e error) {
 	return
 }
 
-func (a *Auth) postRegister(rw http.ResponseWriter, req *http.Request) {
+type authResponse struct {
+	ok      bool
+	message string
+}
+
+// PostRegister handles a new registration
+func (a *Auth) PostRegister(rw http.ResponseWriter, req *http.Request) {
 	var user httpauth.UserData
 	user.Username = req.PostFormValue("username")
 	user.Email = req.PostFormValue("email")
 	password := req.PostFormValue("password")
 	if err := a.aaa.Register(rw, req, user, password); err == nil {
-		a.postLogin(rw, req)
+		a.PostLogin(rw, req)
 	} else {
-		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+		fmt.Println(err)
+		resp := authResponse{ok: false, message: err.Error()}
+		js, err := json.Marshal(resp)
+		if err != nil {
+			rw.Write(js)
+			return
+		}
 	}
 }
 
-func (a *Auth) postLogin(rw http.ResponseWriter, req *http.Request) {
+// PostLogin handles logins to the site
+func (a *Auth) PostLogin(rw http.ResponseWriter, req *http.Request) {
 	username := req.PostFormValue("username")
 	password := req.PostFormValue("password")
 	if err := a.aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
-		http.Redirect(rw, req, "/", http.StatusSeeOther)
+		resp := authResponse{ok: true, message: "succesfully logged in"}
+		js, err := json.Marshal(resp)
+		if err != nil {
+			rw.Write(js)
+			return
+		}
 	} else if err != nil {
 		fmt.Println(err)
-		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+		resp := authResponse{ok: false, message: err.Error()}
+		js, err := json.Marshal(resp)
+		if err != nil {
+			rw.Write(js)
+			return
+		}
+	}
+	resp := authResponse{ok: true, message: "succesfully logged in"}
+	js, err := json.Marshal(resp)
+	if err != nil {
+		rw.Write(js)
+		return
 	}
 }
