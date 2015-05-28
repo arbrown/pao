@@ -7,7 +7,14 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/arbrown/pao/db"
 	"github.com/arbrown/pao/game"
+	"github.com/arbrown/pao/settings"
+	_ "github.com/lib/pq"
+)
+
+var (
+	a *db.Auth
 )
 
 func main() {
@@ -16,8 +23,22 @@ func main() {
 	games := make(map[string]*game.Game)
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
-	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan})
+	s, err := settings.GetSettings()
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("Settings: %+v\n", s)
+	}
+	a, err = db.NewAuth(s)
+	if err != nil {
+		fmt.Println("Could not create auth")
+		fmt.Println(err.Error())
+	}
+	httpMux.HandleFunc("/login", a.PostLogin)
+	httpMux.HandleFunc("/register", a.PostRegister)
+	httpMux.HandleFunc("/logout", a.HandleLogout)
+	httpMux.HandleFunc("/cu", a.Cu)
 
 	go func() {
 		for {
@@ -37,7 +58,8 @@ func main() {
 
 	bind := fmt.Sprintf("%s:%s", host, port)
 
-	err := http.ListenAndServe(bind, httpMux)
+	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
+	err = http.ListenAndServe(bind, httpMux)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())
 	}
@@ -79,6 +101,8 @@ func (lgh listGamesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var user = a.GetUser(w, r)
+	fmt.Printf("105: user: %+v\n", user)
 	id := r.FormValue("id")
 	name := r.FormValue("name")
 	fmt.Println(id)
@@ -90,24 +114,26 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("All Games: %v\n", gh.games)
 		if existingGame, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
-			existingGame.Join(w, r, name)
+			existingGame.Join(w, r, name, user)
 		} else {
 			// make the id requested
 			g := game.NewGame(id, gh.removeGameChan)
 			fmt.Printf("Made new game %s\n", id)
 			gh.games[g.ID] = g
-			g.Join(w, r, name)
+			g.Join(w, r, name, user)
 		}
 	} else {
 		// no id specified, make the game
 		newID := 0
+		fmt.Printf("128: user: %+v\n", user)
 		for _, exists := gh.games[strconv.Itoa(newID)]; exists; _, exists = gh.games[strconv.Itoa(newID)] {
 			newID++
 		}
 		g := game.NewGame(strconv.Itoa(newID), gh.removeGameChan)
 		fmt.Printf("Made new game %d\n", newID)
 		gh.games[g.ID] = g
-		if ok := g.Join(w, r, name); !ok {
+		fmt.Printf("Trying to join new game as: %+v\n", user)
+		if ok := g.Join(w, r, name, user); !ok {
 			delete(gh.games, g.ID)
 		}
 	}

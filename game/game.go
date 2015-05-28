@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/apexskier/httpauth"
 	"github.com/gorilla/websocket"
 )
 
@@ -37,7 +38,7 @@ var upgrader = &websocket.Upgrader{
 }
 
 // Join causes a connection to join a game as a websocket and player
-func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
+func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
 	//fmt.Printf("w=%+v\nr=%+v\n", w, r)
 	fmt.Printf("upgrader= %+v\n", upgrader)
 	if g.CurrentPlayer == nil {
@@ -46,7 +47,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
 			fmt.Printf("Err = %v\n", err.Error())
 			return false
 		}
-		g.CurrentPlayer = newPlayer(conn, g, name)
+		g.CurrentPlayer = newPlayer(conn, g, name, user)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
@@ -60,7 +61,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string) bool {
 			fmt.Printf("Error joining as #2: %v\n", err.Error())
 			return false
 		}
-		g.NextPlayer = newPlayer(conn, g, name)
+		g.NextPlayer = newPlayer(conn, g, name, user)
 		go g.listenPlayer(g.NextPlayer)
 		return true
 	}
@@ -116,7 +117,7 @@ func (g *Game) handleCommand(c playerCommand) {
 		if c.p == g.red {
 			color = "red"
 		}
-		g.broadcastChat(c.p.Name, c.c.Argument, color)
+		g.broadcastChat(c.p, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
 	case "move":
@@ -165,8 +166,9 @@ func (g *Game) broadcastBoard() {
 	}
 }
 
-func (g *Game) broadcastChat(from, message, color string) {
-	chat := chatCommand{Action: "chat", Player: from, Message: message, Color: color}
+func (g *Game) broadcastChat(from *player, message, color string) {
+	fmt.Printf("Chat from: %+v\n", from)
+	chat := chatCommand{Action: "chat", Player: from.Name, Message: message, Color: color, Auth: from.user != nil && from.user.Username == from.Name}
 	//b, _ := json.Marshal(chat)
 	//r := command{Action: "chat", Argument: string(b)}
 	g.broadcast(chat)

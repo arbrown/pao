@@ -29,6 +29,7 @@ var Lobby = React.createClass({
             Fork me on GitHub
           </a>
         </span>
+        <Login setName = {this.setName}/>
         <h2>Pao Lobby</h2>
         <input type="text" ref="name" value={this.state.name} onChange={this.nameChanged} placeholder="Your Name" />
         <div className="lobby-current-games">
@@ -40,6 +41,9 @@ var Lobby = React.createClass({
         <button onClick = {this.joinNew}>Join New Game</button>
       </div>
     )
+  },
+  setName: function(name){
+    this.setState({name})
   },
   Reload: function(){
     var comp = this;
