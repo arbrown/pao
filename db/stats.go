@@ -13,7 +13,7 @@ type leader struct {
 
 // GetLeaderBoard returns a json array of the current top 10 winners
 func GetLeaderBoard(w http.ResponseWriter, r *http.Request) {
-	rows, err := paoDb.Query("select winner, count(*) from completedgames group by winner order by count(*) desc limit 10")
+	rows, err := paoDb.Query("select winner, count(*) from completedgames where winner != '' group by winner order by count(*) desc limit 10")
 	if err != nil {
 		fmt.Printf("Could not retrieve leader board: %s\n", err)
 	}
