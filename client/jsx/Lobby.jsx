@@ -39,6 +39,7 @@ var Lobby = React.createClass({
           </ul>
         </div>
         <button onClick = {this.joinNew}>Join New Game</button>
+        <LeaderBoard/>
       </div>
     )
   },

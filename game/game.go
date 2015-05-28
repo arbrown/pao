@@ -1,6 +1,7 @@
 package game
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -22,6 +23,7 @@ type Game struct {
 	deadPieces                []string
 	active                    bool
 	commandChan               chan playerCommand
+	db                        *sql.DB
 	CurrentPlayer, NextPlayer *player
 	pieceToInt                map[string]int
 	canAttack                 [][]bool
@@ -176,6 +178,15 @@ func (g *Game) broadcastChat(from *player, message, color string) {
 
 func (g *Game) broadcastVictory(victor *player) {
 	fmt.Printf("I think the victor is: %+v\n", victor)
+	var loser *player
+	var winColor string
+	if g.black == victor {
+		loser = g.red
+		winColor = "black"
+	} else {
+		loser = g.black
+		winColor = "red"
+	}
 	if victor != nil && victor.ws != nil {
 		fmt.Println("I told the victor he won")
 		c := gameOverCommand{Action: "gameover", Message: "You win!", YouWin: true}
@@ -184,12 +195,34 @@ func (g *Game) broadcastVictory(victor *player) {
 	lose := gameOverCommand{Action: "gameover", Message: "You lose!", YouWin: false}
 	fmt.Printf("Victor: %+v, red: %+v, black: %+v\n", victor, g.red, g.black)
 	if g.red == victor && g.black != nil {
+		loser = g.black
 		fmt.Println("I told black he lost")
 		g.black.ws.WriteJSON(lose)
 	}
 	if g.black == victor && g.red != nil {
 		fmt.Println("I told red he lost")
 		g.red.ws.WriteJSON(lose)
+	}
+	g.reportVictory(victor, loser, winColor)
+}
+
+func (g *Game) reportVictory(victor, loser *player, winColor string) {
+	var (
+		victorName, loserName string
+	)
+	if victor.user != nil {
+		victorName = victor.user.Username
+	}
+	if loser.user != nil {
+		loserName = loser.user.Username
+	}
+
+	if g.db == nil {
+		return
+	}
+	_, err := g.db.Exec(`insert into completedGames(winner, loser, winColor) values ($1,$2,$3)`, victorName, loserName, winColor)
+	if err != nil {
+		fmt.Printf("Could not insert row into db: %s\n", err)
 	}
 }
 
@@ -250,7 +283,7 @@ func (g *Game) listenPlayer(p *player) {
 }
 
 //NewGame returns a newly initialized game struct
-func NewGame(id string, removeGameChan chan *Game) *Game {
+func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 	return &Game{
 		ID:           id,
 		black:        nil,
@@ -260,6 +293,7 @@ func NewGame(id string, removeGameChan chan *Game) *Game {
 		gameOverChan: make(chan bool, 3), // I think this masks a bug
 		// but I'm not sure how to fix it atm...  I need a go expert.
 		removeGameChan: removeGameChan,
+		db:             db,
 		remainingPieces: []string{
 			"K", "k",
 			"G", "G", "g", "g",

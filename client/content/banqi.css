@@ -116,6 +116,23 @@ html:before {
   margin-right:auto;
 }
 
+.leader-board table {
+  border-collapse: collapse;
+  border: 1px solid black;
+}
+
+.leader-board table thead tr {
+    border-bottom: 1px solid black;
+}
+
+.leader-board table tbody tr:nth-child(even){
+  background: papayawhip;
+}
+
+.leader-board table tbody tr:nth-child(odd){
+  background: seashell;
+}
+
 .banqi-square.red-king{
   background-image: url("/images/red-king.svg")
 }
