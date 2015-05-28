@@ -9,7 +9,11 @@ import (
 // application settings from a config file
 func GetSettings() (p PaoSettings, e error) {
 	p = PaoSettings{}
-	file, err := os.Open("conf/paoSettings.json")
+	path := os.Getenv("PAO_CONF")
+	if path == "" {
+		path = "conf/paoSettings.json"
+	}
+	file, err := os.Open(path)
 	if err != nil {
 		e = err
 		return
