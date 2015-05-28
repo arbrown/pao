@@ -31,24 +31,24 @@ func NewAuth(s settings.PaoSettings) (a *Auth, e error) {
 }
 
 type authResponse struct {
-	ok      bool
-	message string
+	Ok       bool
+	Message  string
+	Username string
 }
 
 // PostRegister handles a new registration
 func (a *Auth) PostRegister(rw http.ResponseWriter, req *http.Request) {
 	var user httpauth.UserData
 	user.Username = req.PostFormValue("username")
-	user.Email = req.PostFormValue("email")
+	user.Email = "fake@email.com" // httpauth requires email...
 	password := req.PostFormValue("password")
+	fmt.Printf("trying to register new user: %+v\n", user)
 	if err := a.aaa.Register(rw, req, user, password); err == nil {
 		a.PostLogin(rw, req)
 	} else {
 		fmt.Println(err)
-		resp := authResponse{ok: false, message: err.Error()}
-		js, err := json.Marshal(resp)
 		if err != nil {
-			rw.Write(js)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
@@ -58,26 +58,42 @@ func (a *Auth) PostRegister(rw http.ResponseWriter, req *http.Request) {
 func (a *Auth) PostLogin(rw http.ResponseWriter, req *http.Request) {
 	username := req.PostFormValue("username")
 	password := req.PostFormValue("password")
-	if err := a.aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
-		resp := authResponse{ok: true, message: "succesfully logged in"}
-		js, err := json.Marshal(resp)
-		if err != nil {
-			rw.Write(js)
-			return
-		}
+	if err := a.aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "httpauth: already authenticated" {
+		http.Redirect(rw, req, "/", http.StatusFound)
 	} else if err != nil {
 		fmt.Println(err)
-		resp := authResponse{ok: false, message: err.Error()}
-		js, err := json.Marshal(resp)
 		if err != nil {
-			rw.Write(js)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
-	resp := authResponse{ok: true, message: "succesfully logged in"}
+	resp := authResponse{Ok: true, Message: "succesfully logged in", Username: username}
 	js, err := json.Marshal(resp)
 	if err != nil {
+		rw.Header().Set("Content-Type", "application/json")
 		rw.Write(js)
+		return
+	}
+}
+
+// HandleLogout logs the current user out
+func (a *Auth) HandleLogout(rw http.ResponseWriter, req *http.Request) {
+	if err := a.aaa.Logout(rw, req); err != nil {
+		fmt.Println(err)
+		// this shouldn't happen
+		return
+	}
+	http.Redirect(rw, req, "/", http.StatusSeeOther)
+}
+
+// Cu returns the current logged-in user (if any)
+func (a *Auth) Cu(rw http.ResponseWriter, req *http.Request) {
+	user, err := a.aaa.CurrentUser(rw, req)
+	if err != nil {
+		return
+	}
+	if user.Username != "" {
+		rw.Write([]byte(user.Username))
 		return
 	}
 }

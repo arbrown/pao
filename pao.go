@@ -33,6 +33,8 @@ func main() {
 	}
 	httpMux.HandleFunc("/login", a.PostLogin)
 	httpMux.HandleFunc("/register", a.PostRegister)
+	httpMux.HandleFunc("/logout", a.HandleLogout)
+	httpMux.HandleFunc("/cu", a.Cu)
 
 	go func() {
 		for {
