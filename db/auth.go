@@ -86,7 +86,20 @@ func (a *Auth) HandleLogout(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "/", http.StatusSeeOther)
 }
 
-// Cu returns the current logged-in user (if any)
+// GetUser returns the currently logged in user (if any)
+func (a *Auth) GetUser(rw http.ResponseWriter, req *http.Request) *httpauth.UserData {
+	fmt.Println("Trying to get current user")
+	user, err := a.aaa.CurrentUser(rw, req)
+	if err == nil && user.Username != "" {
+		fmt.Printf("Retrieved user: %+v\n", user)
+		return &user
+	}
+	fmt.Printf("Got %+v\n", user)
+	fmt.Printf("Error was: %s\n", err)
+	return nil
+}
+
+// Cu returns the current logged-in user's name (if any)
 func (a *Auth) Cu(rw http.ResponseWriter, req *http.Request) {
 	user, err := a.aaa.CurrentUser(rw, req)
 	if err != nil {

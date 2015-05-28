@@ -13,6 +13,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var (
+	a *db.Auth
+)
+
 func main() {
 	fmt.Printf("Hello, Pao\n")
 	removeGameChan := make(chan *game.Game)
@@ -26,7 +30,7 @@ func main() {
 	} else {
 		fmt.Printf("Settings: %+v\n", s)
 	}
-	a, err := db.NewAuth(s)
+	a, err = db.NewAuth(s)
 	if err != nil {
 		fmt.Println("Could not create auth")
 		fmt.Println(err.Error())
@@ -97,6 +101,8 @@ func (lgh listGamesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var user = a.GetUser(w, r)
+	fmt.Printf("105: user: %+v\n", user)
 	id := r.FormValue("id")
 	name := r.FormValue("name")
 	fmt.Println(id)
@@ -108,24 +114,26 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("All Games: %v\n", gh.games)
 		if existingGame, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
-			existingGame.Join(w, r, name)
+			existingGame.Join(w, r, name, user)
 		} else {
 			// make the id requested
 			g := game.NewGame(id, gh.removeGameChan)
 			fmt.Printf("Made new game %s\n", id)
 			gh.games[g.ID] = g
-			g.Join(w, r, name)
+			g.Join(w, r, name, user)
 		}
 	} else {
 		// no id specified, make the game
 		newID := 0
+		fmt.Printf("128: user: %+v\n", user)
 		for _, exists := gh.games[strconv.Itoa(newID)]; exists; _, exists = gh.games[strconv.Itoa(newID)] {
 			newID++
 		}
 		g := game.NewGame(strconv.Itoa(newID), gh.removeGameChan)
 		fmt.Printf("Made new game %d\n", newID)
 		gh.games[g.ID] = g
-		if ok := g.Join(w, r, name); !ok {
+		fmt.Printf("Trying to join new game as: %+v\n", user)
+		if ok := g.Join(w, r, name, user); !ok {
 			delete(gh.games, g.ID)
 		}
 	}

@@ -101,7 +101,7 @@ var Game = React.createClass({
   },
   handleChat: function(chatCommand){
     var chats = this.state.chats;
-    chats.push({player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color})
+    chats.push({player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color, auth:chatCommand.Auth})
     this.setState({chats});
   },
   handleColor: function(colorCommand){

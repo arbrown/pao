@@ -11,6 +11,7 @@ type playerCommand struct {
 
 type chatCommand struct {
 	Action, Player, Color, Message string
+	Auth                           bool
 }
 
 type boardCommand struct {
