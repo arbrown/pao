@@ -98,8 +98,8 @@ html:before {
   height: 80px;
 }
 .dead-pieces .banqi-square{
-  height:30px;
-  width:30px;
+  height:45px;
+  width:45px;
   background-repeat:no-repeat;
   background-size:cover;
   margin:2px;
