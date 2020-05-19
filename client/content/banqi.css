@@ -95,7 +95,7 @@ html:before {
 }
 
 .dead-pieces {
-  height: 80px;
+  height: auto;
 }
 .dead-pieces .banqi-square{
   height:45px;
