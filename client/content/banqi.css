@@ -1,7 +1,6 @@
 table.banqi-board{
   /*border-collapse:collapse;*/
   border-spacing:0;
-  border:1px black solid;
 }
 .chat{
   display:inline-block;
@@ -38,6 +37,13 @@ td.banqi-square {
   background-repeat: no-repeat;
   background-position:center center;
   background-color: white;
+}
+
+td.header {
+  color: darkslategrey;
+  text-align: center;
+  font-size: 2em;
+  vertical-align: middle;
 }
 
 td.banqi-square.selected{

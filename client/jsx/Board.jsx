@@ -30,6 +30,28 @@ var Square = React.createClass({
   },
 });
 
+var RowHeader = React.createClass({
+  render: function() {
+    var classString = "header row-header";
+    var rank = this.props.rank;
+    return(
+    <td className={classString}>
+      {"1234"[rank]}
+    </td>);
+  },
+});
+
+var ColumnHeader = React.createClass({
+  render: function() {
+    var classString = "header column-header";
+    var file = this.props.file;
+    return(
+    <td className={classString}>
+      {"ABCDEFGH"[file]}
+    </td>);
+  },
+});
+
 var Board = React.createClass({
   flipPiece: function(square){
     var files = 'ABCDEFGH';
@@ -69,7 +91,13 @@ var Board = React.createClass({
     var current = this.state.selected;
     var lastMove = this.props.lastMove
     var comp = this;
+    var colHeaders = []
+    colHeaders.push(<td />); // the row-label column needs no column header
+    for (var i=0; i < 8; i++) {
+      colHeaders.push(<ColumnHeader file={i} />)
+    }
     var rowElements = this.props.board.map(function(row, rank){
+      var rowHeader = <RowHeader rank={rank} />
       var squares = row.map(function(square, file){
         return (
           <Square
@@ -84,10 +112,11 @@ var Board = React.createClass({
           </Square>);
         }
       );
-      return (<tr>{squares}</tr>);
+      return (<tr>{rowHeader}{squares}</tr>);
     });
     return (
       <table className="banqi-board">
+        {colHeaders}
         {rowElements}
       </table>
     )
