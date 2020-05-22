@@ -32,21 +32,19 @@ var Square = React.createClass({
 
 var RowHeader = React.createClass({
   render: function() {
-    var classString = "header row-header";
     var rank = this.props.rank;
     return(
-    <td className={classString}>
+    <th scope="row">
       {"1234"[rank]}
-    </td>);
+    </th>);
   },
 });
 
 var ColumnHeader = React.createClass({
   render: function() {
-    var classString = "header column-header";
     var file = this.props.file;
     return(
-    <th className={classString}>
+    <th scope="col">
       {"ABCDEFGH"[file]}
     </th>);
   },

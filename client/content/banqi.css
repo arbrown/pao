@@ -39,7 +39,7 @@ td.banqi-square {
   background-color: white;
 }
 
-.header {
+table.banqi-board th {
   color: darkslategrey;
   text-align: center;
   font-size: 2em;
