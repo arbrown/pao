@@ -15,8 +15,8 @@ var DeadPieces = React.createClass({
       redDead.sort(StrengthCompareD);
       blackDead.sort(StrengthCompareD);
     }
-    var redPieces = redDead.map(PieceMap);
-    var blackPieces = blackDead.map(PieceMap);
+    var redPieces = redDead.map(this.pieceMap);
+    var blackPieces = blackDead.map(this.pieceMap);
     return (
       <div className="dead-pieces">
         <div className="red-dead">{redPieces}</div>
@@ -26,9 +26,22 @@ var DeadPieces = React.createClass({
   },
   getInitialState: function() {
     return {
-      sort : "strength"
+      sort : "strength",
+      lastDead: ""
     };
   },
+  pieceMap: function(piece){
+    var classes = []
+    classes.push('banqi-square');
+    classes.push('dead');
+    if (this.props.lastDead == piece){
+        classes.push('last-move');
+        this.props.lastDead = ''; // Yuck
+    }
+    classes.push(NotationToCss[piece]);
+    var classString = classes.reduce(function(p, c) { return p + " " + c});
+    return <div className={classString} />
+  }
 });
 
 PieceStrength = ["Q","P","H","C","E","G","K"]                
@@ -47,13 +60,4 @@ StrengthCompare = function(a, b, desc){
     return bStrength - aStrength;
   }
   return aStrength - bStrength;
-};
-
-PieceMap = function(piece){
-  var classes = []
-  classes.push('banqi-square');
-  classes.push('dead');
-  classes.push(NotationToCss[piece]);
-  var classString = classes.reduce(function(p, c) { return p + " " + c});
-  return <div className={classString} />
 };

@@ -25,14 +25,14 @@ func parseMove(s string) (m *move, e error) {
 func (m *move) getCoords() (srcFile, srcRank, tgtFile, tgtRank int) {
 	fmt.Printf("Trying to get coords for: %+v\n", m)
 	srcFile = int(m.source[0] - 'A')
-	srcRank = int(m.source[1] - '1' + 1)
+	srcRank = int(m.source[1] - '1')
 	if m.isFlip {
 		tgtFile, tgtRank = -1, -1
 		fmt.Printf("I think they are %d,%d\n", srcRank, srcFile)
 		return
 	}
 	tgtFile = int(m.target[0] - 'A')
-	tgtRank = int(m.target[1] - '1' + 1)
+	tgtRank = int(m.target[1] - '1')
 	return
 }
 

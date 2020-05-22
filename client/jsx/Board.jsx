@@ -7,7 +7,14 @@ var Square = React.createClass({
   },
   render: function() {
     var classes = [];
+    var files = 'ABCDEFGH';
+    var ranks = '1234';
+    var coord = files.charAt(this.props.file) + ranks.charAt(this.props.rank)
     classes.push('banqi-square');
+    classes.push('banqi-square-' + coord)
+    if (this.props.lastMove && this.props.lastMove.indexOf(coord) != -1) {
+        classes.push('last-move')
+    }
     if (this.props.selected){
       classes.push('selected')
     }
@@ -17,7 +24,7 @@ var Square = React.createClass({
     }
     classString = classes.reduce(function(p, c) { return p + " " + c});
     return(
-    <td className={classString} onClick={this.handleClick}>
+    <td className={classString} onClick={this.handleClick} title={coord + " " + type}>
       {this.props.children}
     </td>);
   },
@@ -26,16 +33,18 @@ var Square = React.createClass({
 var Board = React.createClass({
   flipPiece: function(square){
     var files = 'ABCDEFGH';
-    var move = '?'+files.charAt(square.file)+square.rank;
+    var ranks = '1234';
+    var move = '?'+files.charAt(square.file)+ ranks.charAt(square.rank);
     console.log("Tried to flip piece at: " + square.rank+","+square.file);
     !this.props.sendMove || this.props.sendMove(move)
   },
   move: function(attacker, target){
     var files = 'ABCDEFGH';
+    var ranks = '1234';
     console.log("Tried to attack/move from: " + attacker.rank+"," +attacker.file
     + " to: " + target.rank+","+target.file);
-    var move =  files.charAt(attacker.file) + attacker.rank + '>' +
-                files.charAt(target.file) + target.rank;
+    var move =  files.charAt(attacker.file) + ranks.charAt(attacker.rank) + '>' +
+                files.charAt(target.file) + ranks.charAt(target.rank);
     !this.props.sendMove || this.props.sendMove(move);
   },
   handleClick: function(clicked){
@@ -58,6 +67,7 @@ var Board = React.createClass({
   },
   render: function(){
     var current = this.state.selected;
+    var lastMove = this.props.lastMove
     var comp = this;
     var rowElements = this.props.board.map(function(row, rank){
       var squares = row.map(function(square, file){
@@ -66,6 +76,7 @@ var Board = React.createClass({
             handleClick={comp.handleClick}
             piece={square}
             selected={current && current.rank == rank && current.file == file}
+            lastMove = {lastMove}
             rank={rank}
             file={file}
             key={(rank+file)*(rank+file+1)/2 + file}
@@ -84,6 +95,7 @@ var Board = React.createClass({
   getInitialState: function() {
     return {
       selected : null,
+      lastMove: null
     };
   },
   IOwn : function(square){

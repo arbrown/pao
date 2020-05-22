@@ -44,7 +44,9 @@ td.banqi-square.selected{
   background-color:indianred;
   border: 1px red solid;
 }
-
+.banqi-square.last-move {
+    background-color: khaki;
+}
 .game-state-banner .banqi-square {
   height:45px;
   width: 45px;

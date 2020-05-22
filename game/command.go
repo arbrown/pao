@@ -18,6 +18,8 @@ type boardCommand struct {
 	Action   string
 	Board    [][]string
 	Dead     []string
+	LastMove []string
+	LastDead string
 	YourTurn bool
 }
 
