@@ -21,6 +21,8 @@ type Game struct {
 	knownBoard                [][]string
 	remainingPieces           []string
 	deadPieces                []string
+	lastMove				  []string
+	lastDead			      string
 	active                    bool
 	commandChan               chan playerCommand
 	db                        *sql.DB
@@ -157,7 +159,9 @@ func (g *Game) broadcastBoard() {
 		Action:   "board",
 		Board:    g.knownBoard,
 		YourTurn: g.NextPlayer != nil,
-		Dead:     g.deadPieces}
+		Dead:     g.deadPieces,
+		LastDead: g.lastDead,
+		LastMove: g.lastMove}
 
 	if g.CurrentPlayer != nil {
 		g.CurrentPlayer.ws.WriteJSON(r)
@@ -339,9 +343,23 @@ func (g *Game) tryMove(pc playerCommand) bool {
 		if ok := g.flip(move); !ok {
 			return false
 		}
-	} else if ok := g.performMove(move); !ok {
-		return false
+		g.lastMove = nil
+		g.lastMove = append(g.lastMove, move.source)
+	} else {
+		ok, deadPiece := g.performMove(move);
+		if  !ok {
+			return false
+		}
+		g.lastMove = nil
+		g.lastMove = append(g.lastMove, move.source)
+		if (deadPiece != ""){
+			g.lastDead = deadPiece
+		}
 	}
+	if (move.target != "") {
+		g.lastMove = append(g.lastMove, move.target)
+	}
+
 	return true
 }
 
@@ -374,10 +392,10 @@ func (g *Game) flip(m *move) bool {
 	return true
 }
 
-func (g *Game) performMove(m *move) bool {
+func (g *Game) performMove(m *move) (bool, string) {
 	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
 	if !g.currentPlayerOwns(srcRank, srcFile) || g.currentPlayerOwns(tgtRank, tgtFile) {
-		return false
+		return false, ""
 	}
 
 	srcPiece, tgtPiece := g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile]
@@ -385,11 +403,11 @@ func (g *Game) performMove(m *move) bool {
 		// Not an empty space, need to check if we can attack it
 		if tgtPiece == "?" {
 			// trying to attack an unflipped piece?  You monster!
-			return false
+			return false, ""
 		}
 		srcPower, tgtPower := g.pieceToInt[srcPiece], g.pieceToInt[tgtPiece]
 		if !g.canAttack[srcPower][tgtPower] {
-			return false
+			return false, ""
 		}
 	}
 
@@ -398,7 +416,7 @@ func (g *Game) performMove(m *move) bool {
 		// no cannon attack involved, move must be directly adjacent
 		if (math.Abs(float64(srcRank-tgtRank)) + math.Abs(float64(srcFile-tgtFile))) != 1 {
 			// invalid move
-			return false
+			return false, ""
 		}
 	} else {
 		// now the harder part
@@ -406,7 +424,7 @@ func (g *Game) performMove(m *move) bool {
 		// One of those should be 0
 		if moveRank != 0 && moveFile != 0 {
 			// diagonal cannon shot... very sneaky
-			return false
+			return false, ""
 		}
 		// walk from one end to the other, expecting one piece exactly
 		hopped := 0
@@ -424,7 +442,7 @@ func (g *Game) performMove(m *move) bool {
 			}
 		}
 		if hopped != 1 {
-			return false
+			return false, ""
 		}
 	}
 
@@ -433,9 +451,10 @@ func (g *Game) performMove(m *move) bool {
 	// add the target piece to dead piece if it was not an empty square
 	if tgtPiece != "." {
 		g.deadPieces = append(g.deadPieces, tgtPiece)
+		g.lastDead = tgtPiece
 	}
 
-	return true
+	return true, tgtPiece
 }
 
 func (g *Game) checkVictory() (victor *player, won bool) {

@@ -9,8 +9,9 @@ var Game = React.createClass({
        <Board
           board={this.state.board} myTurn={this.state.myTurn}
           sendMove={this.sendMove}
-          myColor={this.state.myColor} />
-        <DeadPieces dead={this.state.dead}  />
+          myColor={this.state.myColor}
+          lastMove={this.state.lastMove} />
+        <DeadPieces dead={this.state.dead} lastDead={this.state.lastDead}  />
       <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
       <button className="resignButton" onClick={this.resign}>Resign</button>
@@ -97,7 +98,12 @@ var Game = React.createClass({
     }
   },
   handleBoard: function(boardCommand){
-    this.setState({board: boardCommand.Board, myTurn: boardCommand.YourTurn, dead: boardCommand.Dead})
+    this.setState({
+            board: boardCommand.Board,
+            myTurn: boardCommand.YourTurn,
+            dead: boardCommand.Dead,
+            lastMove: boardCommand.LastMove,
+            lastDead: boardCommand.LastDead})
   },
   handleChat: function(chatCommand){
     var chats = this.state.chats;
@@ -160,8 +166,3 @@ var GameState= React.createClass({
     )
   }
 });
-
-// React.render(
-//   React.createElement(Game, null),
-//   document.getElementById('game')
-// );
