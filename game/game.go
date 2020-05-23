@@ -167,6 +167,9 @@ func (g *Game) handleCommand(c playerCommand) {
 }
 
 func (g *Game) resign(p *player) {
+	if p.kibitzer {
+		return
+	}
 	if p == g.CurrentPlayer {
 		g.broadcastVictory(g.NextPlayer)
 	} else {
