@@ -31,6 +31,7 @@ type Game struct {
 	canAttack                 [][]bool
 	gameOverChan              chan bool
 	removeGameChan            chan *Game
+	kibitzers				  []*player
 }
 
 var upgrader = &websocket.Upgrader{
@@ -51,7 +52,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 			fmt.Printf("Err = %v\n", err.Error())
 			return false
 		}
-		g.CurrentPlayer = newPlayer(conn, g, name, user)
+		g.CurrentPlayer = newPlayer(conn, g, name, user, false)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
@@ -65,18 +66,36 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 			fmt.Printf("Error joining as #2: %v\n", err.Error())
 			return false
 		}
-		g.NextPlayer = newPlayer(conn, g, name, user)
+		g.NextPlayer = newPlayer(conn, g, name, user, false)
 		go g.listenPlayer(g.NextPlayer)
 		return true
+	} else {
+		g.JoinKibitz(w, r, name, user)
 	}
 	return false
 }
+
+func (g *Game) JoinKibitz (w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Err = %v\n", err.Error())
+		return false
+	}
+	kibitzer := newPlayer(conn, g, name, user, true)
+	g.kibitzers = append(g.kibitzers, kibitzer)
+	go g.listenPlayer(kibitzer)
+	return true
+}
+
 func (g *Game) closeWebSockets() {
 	if g.red != nil {
 		g.red.ws.Close()
 	}
 	if g.black != nil {
 		g.black.ws.Close()
+	}
+	for _, k := range(g.kibitzers) {
+		k.ws.Close()
 	}
 }
 
@@ -121,6 +140,9 @@ func (g *Game) handleCommand(c playerCommand) {
 		if c.p == g.red {
 			color = "red"
 		}
+		if (c.p.kibitzer == true) {
+			color = "teal"
+		} 
 		g.broadcastChat(c.p, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
@@ -170,6 +192,9 @@ func (g *Game) broadcastBoard() {
 		r.YourTurn = false
 		g.NextPlayer.ws.WriteJSON(r)
 	}
+	for _, k := range(g.kibitzers) {
+		k.ws.WriteJSON(r)
+	}
 }
 
 func (g *Game) broadcastChat(from *player, message, color string) {
@@ -206,6 +231,10 @@ func (g *Game) broadcastVictory(victor *player) {
 	if g.black == victor && g.red != nil {
 		fmt.Println("I told red he lost")
 		g.red.ws.WriteJSON(lose)
+	}
+	c := gameOverCommand{Action: "gameover", Message: "Game Over!", YouWin: false}
+	for _, k := range(g.kibitzers) {
+		k.ws.WriteJSON(c)
 	}
 	g.reportVictory(victor, loser, winColor)
 }
@@ -244,6 +273,9 @@ func (g *Game) broadcast(v interface{}) {
 	}
 	if g.NextPlayer != nil {
 		g.NextPlayer.ws.WriteJSON(v)
+	}
+	for _, k := range(g.kibitzers) {
+		k.ws.WriteJSON(v)
 	}
 }
 
