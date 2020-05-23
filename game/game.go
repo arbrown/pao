@@ -170,6 +170,9 @@ func (g *Game) resign(p *player) {
 	if p.kibitzer {
 		return
 	}
+	if g.red == nil {
+		return
+	}
 	if p == g.CurrentPlayer {
 		g.broadcastVictory(g.NextPlayer)
 	} else {
