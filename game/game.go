@@ -21,8 +21,8 @@ type Game struct {
 	knownBoard                [][]string
 	remainingPieces           []string
 	deadPieces                []string
-	lastMove				  []string
-	lastDead			      string
+	lastMove                  []string
+	lastDead                  string
 	active                    bool
 	commandChan               chan playerCommand
 	db                        *sql.DB
@@ -155,13 +155,30 @@ func (g *Game) resign(p *player) {
 }
 
 func (g *Game) broadcastBoard() {
+	numPlayers := 0
+	if g.CurrentPlayer != nil {
+		numPlayers += 1
+	}
+	if g.NextPlayer != nil {
+		numPlayers += 1
+	}
 	r := boardCommand{
-		Action:   "board",
-		Board:    g.knownBoard,
-		YourTurn: g.NextPlayer != nil,
-		Dead:     g.deadPieces,
-		LastDead: g.lastDead,
-		LastMove: g.lastMove}
+		Action:     "board",
+		Board:      g.knownBoard,
+		YourTurn:   g.NextPlayer != nil,
+		Dead:       g.deadPieces,
+		LastDead:   g.lastDead,
+		LastMove:   g.lastMove,
+		WhoseTurn:  g.CurrentPlayer.Name,
+		TurnColor:  "green",
+		NumPlayers: numPlayers}
+
+	if g.CurrentPlayer == g.red {
+		r.TurnColor = "red"
+	}
+	if g.CurrentPlayer == g.black {
+		r.TurnColor = "black"
+	}
 
 	if g.CurrentPlayer != nil {
 		g.CurrentPlayer.ws.WriteJSON(r)
@@ -346,17 +363,17 @@ func (g *Game) tryMove(pc playerCommand) bool {
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
 	} else {
-		ok, deadPiece := g.performMove(move);
-		if  !ok {
+		ok, deadPiece := g.performMove(move)
+		if !ok {
 			return false
 		}
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
-		if (deadPiece != ""){
+		if deadPiece != "" {
 			g.lastDead = deadPiece
 		}
 	}
-	if (move.target != "") {
+	if move.target != "" {
 		g.lastMove = append(g.lastMove, move.target)
 	}
 
