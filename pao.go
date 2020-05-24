@@ -11,7 +11,7 @@ import (
 	paoDb "github.com/arbrown/pao/db"
 	"github.com/arbrown/pao/game"
 	"github.com/arbrown/pao/settings"
-	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -28,11 +28,6 @@ func main() {
 	} else {
 		fmt.Printf("Settings: %+v\n", s)
 	}
-	a, err = paoDb.NewAuth(s)
-	if err != nil {
-		fmt.Println("Could not create auth")
-		fmt.Println(err.Error())
-	}
 	// create db connection
 	db, err := sql.Open(s.DbConfig.Driver, s.DbConfig.ConnectionString)
 	if err != nil {
@@ -41,6 +36,12 @@ func main() {
 	} else {
 		paoDb.Init(db)
 	}
+	a, err = paoDb.NewAuth(s)
+	if err != nil {
+		fmt.Println("Could not create auth")
+		fmt.Println(err.Error())
+	}
+
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
