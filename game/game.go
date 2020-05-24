@@ -21,8 +21,8 @@ type Game struct {
 	knownBoard                [][]string
 	remainingPieces           []string
 	deadPieces                []string
-	lastMove				  []string
-	lastDead			      string
+	lastMove                  []string
+	lastDead                  string
 	active                    bool
 	commandChan               chan playerCommand
 	db                        *sql.DB
@@ -31,7 +31,7 @@ type Game struct {
 	canAttack                 [][]bool
 	gameOverChan              chan bool
 	removeGameChan            chan *Game
-	kibitzers				  []*player
+	kibitzers                 []*player
 }
 
 var upgrader = &websocket.Upgrader{
@@ -75,7 +75,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 	return false
 }
 
-func (g *Game) JoinKibitz (w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
+func (g *Game) JoinKibitz(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("Err = %v\n", err.Error())
@@ -94,7 +94,7 @@ func (g *Game) closeWebSockets() {
 	if g.black != nil {
 		g.black.ws.Close()
 	}
-	for _, k := range(g.kibitzers) {
+	for _, k := range g.kibitzers {
 		k.ws.Close()
 	}
 }
@@ -140,9 +140,9 @@ func (g *Game) handleCommand(c playerCommand) {
 		if c.p == g.red {
 			color = "red"
 		}
-		if (c.p.kibitzer == true) {
+		if c.p.kibitzer == true {
 			color = "teal"
-		} 
+		}
 		g.broadcastChat(c.p, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
@@ -168,6 +168,7 @@ func (g *Game) handleCommand(c playerCommand) {
 
 func (g *Game) resign(p *player) {
 	if p.kibitzer {
+		g.suggestResign(p)
 		return
 	}
 	if g.red == nil {
@@ -180,6 +181,14 @@ func (g *Game) resign(p *player) {
 	}
 
 	g.endGame()
+}
+
+func (g *Game) suggestResign(p *player) {
+	g.broadcastChat(p, g.getTaunt(), "darkcyan")
+}
+
+func (g *Game) getTaunt() string {
+	return taunts[rand.Intn(len(taunts))]
 }
 
 func (g *Game) broadcastBoard() {
@@ -198,7 +207,7 @@ func (g *Game) broadcastBoard() {
 		r.YourTurn = false
 		g.NextPlayer.ws.WriteJSON(r)
 	}
-	for _, k := range(g.kibitzers) {
+	for _, k := range g.kibitzers {
 		k.ws.WriteJSON(r)
 	}
 }
@@ -239,7 +248,7 @@ func (g *Game) broadcastVictory(victor *player) {
 		g.red.ws.WriteJSON(lose)
 	}
 	c := gameOverCommand{Action: "gameover", Message: "Game Over!", YouWin: false}
-	for _, k := range(g.kibitzers) {
+	for _, k := range g.kibitzers {
 		k.ws.WriteJSON(c)
 	}
 	g.reportVictory(victor, loser, winColor)
@@ -280,7 +289,7 @@ func (g *Game) broadcast(v interface{}) {
 	if g.NextPlayer != nil {
 		g.NextPlayer.ws.WriteJSON(v)
 	}
-	for _, k := range(g.kibitzers) {
+	for _, k := range g.kibitzers {
 		k.ws.WriteJSON(v)
 	}
 }
@@ -384,17 +393,17 @@ func (g *Game) tryMove(pc playerCommand) bool {
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
 	} else {
-		ok, deadPiece := g.performMove(move);
-		if  !ok {
+		ok, deadPiece := g.performMove(move)
+		if !ok {
 			return false
 		}
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
-		if (deadPiece != ""){
+		if deadPiece != "" {
 			g.lastDead = deadPiece
 		}
 	}
-	if (move.target != "") {
+	if move.target != "" {
 		g.lastMove = append(g.lastMove, move.target)
 	}
 
@@ -573,3 +582,9 @@ func generateUnknownBoard() [][]string {
 	}
 	return board
 }
+
+var taunts = []string{
+	"I think you should resign.",
+	"This just isn't your game.",
+	"Do you still think you can win?",
+	"Stop! He's already dead!"}
