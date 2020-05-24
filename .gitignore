@@ -21,5 +21,4 @@ _testmain.go
 
 *.exe
 
-Caddyfile
-conf/paoSettings.json
+conf/*.json
