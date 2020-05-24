@@ -87,6 +87,17 @@ func (g *Game) JoinKibitz(w http.ResponseWriter, r *http.Request, name string, u
 	return true
 }
 
+func (g *Game) removeKibitzer(p *player) {
+	var newKibitzers []*player
+	for i, k := range g.kibitzers {
+		if k == p {
+			newKibitzers = append(g.kibitzers[:i], g.kibitzers[i+1:]...)
+			break
+		}
+	}
+	g.kibitzers = newKibitzers
+}
+
 func (g *Game) closeWebSockets() {
 	if g.red != nil {
 		g.red.ws.Close()
@@ -95,7 +106,16 @@ func (g *Game) closeWebSockets() {
 		g.black.ws.Close()
 	}
 	for _, k := range g.kibitzers {
-		k.ws.Close()
+		go readLoop(k.ws)
+	}
+}
+
+func readLoop(c *websocket.Conn) {
+	for {
+		if _, _, err := c.NextReader(); err != nil {
+			c.Close()
+			break
+		}
 	}
 }
 
@@ -314,6 +334,9 @@ func (g *Game) listenPlayer(p *player) {
 		fmt.Println("got a message?")
 		if err != nil {
 			fmt.Printf("Error from player's messages: %v\n", err.Error())
+			if p != g.red && p != g.black {
+				g.removeKibitzer(p)
+			}
 			break
 		} else {
 			b, jerr := json.Marshal(com)
@@ -329,8 +352,10 @@ func (g *Game) listenPlayer(p *player) {
 		}
 	}
 	fmt.Println("Stopping listen loop")
-	p.ws.Close()
-	g.endGame()
+	go readLoop(p.ws)
+	if p == g.red || p == g.black {
+		g.endGame()
+	}
 }
 
 //NewGame returns a newly initialized game struct
