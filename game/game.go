@@ -21,8 +21,8 @@ type Game struct {
 	knownBoard                [][]string
 	remainingPieces           []string
 	deadPieces                []string
-	lastMove				  []string
-	lastDead			      string
+	lastMove                  []string
+	lastDead                  string
 	active                    bool
 	commandChan               chan playerCommand
 	db                        *sql.DB
@@ -346,17 +346,17 @@ func (g *Game) tryMove(pc playerCommand) bool {
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
 	} else {
-		ok, deadPiece := g.performMove(move);
-		if  !ok {
+		ok, deadPiece := g.performMove(move)
+		if !ok {
 			return false
 		}
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
-		if (deadPiece != ""){
+		if deadPiece != "" {
 			g.lastDead = deadPiece
 		}
 	}
-	if (move.target != "") {
+	if move.target != "" {
 		g.lastMove = append(g.lastMove, move.target)
 	}
 
