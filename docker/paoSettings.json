@@ -1,0 +1,9 @@
+{
+  "DbConfig" : {
+    "driver" : "sqlite3",
+    "connectionString" : "pao.s3db"
+  },
+  "AuthConfig" : {
+    "encryptionKey" : "foo-bar-baz-blat"
+  }
+}
