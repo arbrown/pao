@@ -44,7 +44,6 @@ var Game = React.createClass({
   },
   connect: function(){
     var params = {name: this.props.name, id: this.props.id}
-    this.tryConnect("8000", params)
     this.tryConnect(document.location.port, params)
   },
   tryConnect: function(port, params){
