@@ -5,9 +5,13 @@ var Game = React.createClass({
        <GameState myTurn={this.state.myTurn}
                   gameOver={this.state.gameOver}
                   won={this.state.won}
-                  myColor={this.state.myColor}/>
+                  myColor={this.state.myColor}
+                  whoseTurn={this.state.whoseTurn}
+                  turnColor={this.state.turnColor}
+                  numPlayers={this.state.numPlayers}/>
        <Board
-          board={this.state.board} myTurn={this.state.myTurn}
+          board={this.state.board}
+          myTurn={this.state.myTurn}
           sendMove={this.sendMove}
           myColor={this.state.myColor}
           lastMove={this.state.lastMove} />
@@ -102,7 +106,10 @@ var Game = React.createClass({
             myTurn: boardCommand.YourTurn,
             dead: boardCommand.Dead,
             lastMove: boardCommand.LastMove,
-            lastDead: boardCommand.LastDead})
+            lastDead: boardCommand.LastDead,
+            whoseTurn: boardCommand.WhoseTurn,
+            turnColor: boardCommand.TurnColor,
+            numPlayers: boardCommand.NumPlayers})
   },
   handleChat: function(chatCommand){
     var chats = this.state.chats;
@@ -126,7 +133,10 @@ var Game = React.createClass({
       ['.','.','.','.','.','.','.','.',]],
       myTurn:false,
       myColor: null,
-      dead: []
+      dead: [],
+      numPlayers: 0,
+      whoseTurn: null,
+      turnColor: null
     };
   },
 });
@@ -143,10 +153,10 @@ var GameState= React.createClass({
         headers.push(<h3 className="game-info-subheader">You lose.</h3>)
       }
     }
-    else if (this.props.myTurn) {
-      headers.push(<h2>Your Turn</h2>)
+    if (this.props.numPlayers < 2) {
+        headers.push(<h2 style={{color:this.props.turnColor}}>Waiting For Opponent</h2>);
     } else {
-      headers.push(<h2>Opponent's Turn</h2>)
+        headers.push(<h2 style={{color:this.props.turnColor}}>{this.props.whoseTurn}'s Turn</h2>);
     }
     var cannon;
     if (this.props.myColor == "red"){

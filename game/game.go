@@ -155,13 +155,30 @@ func (g *Game) resign(p *player) {
 }
 
 func (g *Game) broadcastBoard() {
+	numPlayers := 0
+	if g.CurrentPlayer != nil {
+		numPlayers += 1
+	}
+	if g.NextPlayer != nil {
+		numPlayers += 1
+	}
 	r := boardCommand{
-		Action:   "board",
-		Board:    g.knownBoard,
-		YourTurn: g.NextPlayer != nil,
-		Dead:     g.deadPieces,
-		LastDead: g.lastDead,
-		LastMove: g.lastMove}
+		Action:     "board",
+		Board:      g.knownBoard,
+		YourTurn:   g.NextPlayer != nil,
+		Dead:       g.deadPieces,
+		LastDead:   g.lastDead,
+		LastMove:   g.lastMove,
+		WhoseTurn:  g.CurrentPlayer.Name,
+		TurnColor:  "green",
+		NumPlayers: numPlayers}
+
+	if g.CurrentPlayer == g.red {
+		r.TurnColor = "red"
+	}
+	if g.CurrentPlayer == g.black {
+		r.TurnColor = "black"
+	}
 
 	if g.CurrentPlayer != nil {
 		g.CurrentPlayer.ws.WriteJSON(r)

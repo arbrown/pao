@@ -15,12 +15,15 @@ type chatCommand struct {
 }
 
 type boardCommand struct {
-	Action   string
-	Board    [][]string
-	Dead     []string
-	LastMove []string
-	LastDead string
-	YourTurn bool
+	Action     string
+	Board      [][]string
+	Dead       []string
+	LastMove   []string
+	LastDead   string
+	YourTurn   bool
+	WhoseTurn  string
+	TurnColor  string
+	NumPlayers int
 }
 
 type colorCommand struct {
