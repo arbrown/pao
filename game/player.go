@@ -5,12 +5,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func newPlayer(c *websocket.Conn, g *Game, name string, user *httpauth.UserData) *player {
+func newPlayer(c *websocket.Conn, g *Game, name string, user *httpauth.UserData, kibitzer bool) *player {
 	return &player{
 		ws:   c,
 		g:    g,
 		Name: name,
 		user: user,
+		kibitzer: kibitzer,
 	}
 }
 
@@ -20,4 +21,5 @@ type player struct {
 	g    *Game
 	ws   *websocket.Conn
 	user *httpauth.UserData
+	kibitzer bool
 }

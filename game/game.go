@@ -31,6 +31,7 @@ type Game struct {
 	canAttack                 [][]bool
 	gameOverChan              chan bool
 	removeGameChan            chan *Game
+	kibitzers                 []*player
 }
 
 var upgrader = &websocket.Upgrader{
@@ -51,7 +52,7 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 			fmt.Printf("Err = %v\n", err.Error())
 			return false
 		}
-		g.CurrentPlayer = newPlayer(conn, g, name, user)
+		g.CurrentPlayer = newPlayer(conn, g, name, user, false)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
@@ -65,18 +66,56 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 			fmt.Printf("Error joining as #2: %v\n", err.Error())
 			return false
 		}
-		g.NextPlayer = newPlayer(conn, g, name, user)
+		g.NextPlayer = newPlayer(conn, g, name, user, false)
 		go g.listenPlayer(g.NextPlayer)
 		return true
+	} else {
+		g.JoinKibitz(w, r, name, user)
 	}
 	return false
 }
+
+func (g *Game) JoinKibitz(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Err = %v\n", err.Error())
+		return false
+	}
+	kibitzer := newPlayer(conn, g, name, user, true)
+	g.kibitzers = append(g.kibitzers, kibitzer)
+	go g.listenPlayer(kibitzer)
+	return true
+}
+
+func (g *Game) removeKibitzer(p *player) {
+	var newKibitzers []*player
+	for i, k := range g.kibitzers {
+		if k == p {
+			newKibitzers = append(g.kibitzers[:i], g.kibitzers[i+1:]...)
+			break
+		}
+	}
+	g.kibitzers = newKibitzers
+}
+
 func (g *Game) closeWebSockets() {
 	if g.red != nil {
 		g.red.ws.Close()
 	}
 	if g.black != nil {
 		g.black.ws.Close()
+	}
+	for _, k := range g.kibitzers {
+		go readLoop(k.ws)
+	}
+}
+
+func readLoop(c *websocket.Conn) {
+	for {
+		if _, _, err := c.NextReader(); err != nil {
+			c.Close()
+			break
+		}
 	}
 }
 
@@ -121,6 +160,9 @@ func (g *Game) handleCommand(c playerCommand) {
 		if c.p == g.red {
 			color = "red"
 		}
+		if c.p.kibitzer == true {
+			color = "teal"
+		}
 		g.broadcastChat(c.p, c.c.Argument, color)
 	case "board?":
 		g.broadcastBoard()
@@ -145,6 +187,13 @@ func (g *Game) handleCommand(c playerCommand) {
 }
 
 func (g *Game) resign(p *player) {
+	if p.kibitzer {
+		g.suggestResign(p)
+		return
+	}
+	if g.red == nil {
+		return
+	}
 	if p == g.CurrentPlayer {
 		g.broadcastVictory(g.NextPlayer)
 	} else {
@@ -152,6 +201,14 @@ func (g *Game) resign(p *player) {
 	}
 
 	g.endGame()
+}
+
+func (g *Game) suggestResign(p *player) {
+	g.broadcastChat(p, g.getTaunt(), "darkcyan")
+}
+
+func (g *Game) getTaunt() string {
+	return taunts[rand.Intn(len(taunts))]
 }
 
 func (g *Game) broadcastBoard() {
@@ -186,6 +243,9 @@ func (g *Game) broadcastBoard() {
 	if g.NextPlayer != nil {
 		r.YourTurn = false
 		g.NextPlayer.ws.WriteJSON(r)
+	}
+	for _, k := range g.kibitzers {
+		k.ws.WriteJSON(r)
 	}
 }
 
@@ -223,6 +283,10 @@ func (g *Game) broadcastVictory(victor *player) {
 	if g.black == victor && g.red != nil {
 		fmt.Println("I told red he lost")
 		g.red.ws.WriteJSON(lose)
+	}
+	c := gameOverCommand{Action: "gameover", Message: "Game Over!", YouWin: false}
+	for _, k := range g.kibitzers {
+		k.ws.WriteJSON(c)
 	}
 	g.reportVictory(victor, loser, winColor)
 }
@@ -262,6 +326,9 @@ func (g *Game) broadcast(v interface{}) {
 	if g.NextPlayer != nil {
 		g.NextPlayer.ws.WriteJSON(v)
 	}
+	for _, k := range g.kibitzers {
+		k.ws.WriteJSON(v)
+	}
 }
 
 func (g *Game) broadcastColors() {
@@ -284,6 +351,9 @@ func (g *Game) listenPlayer(p *player) {
 		fmt.Println("got a message?")
 		if err != nil {
 			fmt.Printf("Error from player's messages: %v\n", err.Error())
+			if p != g.red && p != g.black {
+				g.removeKibitzer(p)
+			}
 			break
 		} else {
 			b, jerr := json.Marshal(com)
@@ -299,8 +369,10 @@ func (g *Game) listenPlayer(p *player) {
 		}
 	}
 	fmt.Println("Stopping listen loop")
-	p.ws.Close()
-	g.endGame()
+	go readLoop(p.ws)
+	if p == g.red || p == g.black {
+		g.endGame()
+	}
 }
 
 //NewGame returns a newly initialized game struct
@@ -552,3 +624,9 @@ func generateUnknownBoard() [][]string {
 	}
 	return board
 }
+
+var taunts = []string{
+	"I think you should resign.",
+	"This just isn't your game.",
+	"Do you still think you can win?",
+	"Stop! He's already dead!"}
