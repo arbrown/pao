@@ -105,13 +105,21 @@ html:before {
 .dead-pieces {
   height: auto;
 }
-.dead-pieces .banqi-square{
+.dead-pieces .banqi-square {
   height:45px;
   width:45px;
   background-repeat:no-repeat;
   background-size:cover;
   margin:2px;
   display:inline-block;
+}
+.dead-pieces .banqi-square.alive {
+    opacity: 50%;
+}
+.dead-pieces .banqi-square.unborn {
+    opacity: 30%;
+    -webkit-filter: grayscale(100%);
+    filter: grayscale(100%);
 }
 
 .lobby-game .banqi-square {

@@ -8,14 +8,16 @@ var Game = React.createClass({
                   myColor={this.state.myColor}
                   whoseTurn={this.state.whoseTurn}
                   turnColor={this.state.turnColor}
-                  numPlayers={this.state.numPlayers}/>
+                  numPlayers={this.state.numPlayers} />
        <Board
           board={this.state.board}
           myTurn={this.state.myTurn}
           sendMove={this.sendMove}
           myColor={this.state.myColor}
           lastMove={this.state.lastMove} />
-        <DeadPieces dead={this.state.dead} lastDead={this.state.lastDead}  />
+       <DeadPieces dead={this.state.dead}
+         lastDead={this.state.lastDead}
+         board={this.state.board} />
       <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
       <button className="resignButton" onClick={this.resign}>Resign</button>

@@ -15,8 +15,9 @@ var DeadPieces = React.createClass({
       redDead.sort(StrengthCompareD);
       blackDead.sort(StrengthCompareD);
     }
-    var redPieces = redDead.map(this.pieceMap);
-    var blackPieces = blackDead.map(this.pieceMap);
+    var livePieces = this.collectKnownPieces(this.props.board)
+    var redPieces = this.deadPieces("kggeecchhpppppqq", redDead, livePieces);
+    var blackPieces = this.deadPieces("KGGEECCHHPPPPPQQ", blackDead, livePieces);
     return (
       <div className="dead-pieces">
         <div className="red-dead">{redPieces}</div>
@@ -30,21 +31,55 @@ var DeadPieces = React.createClass({
       lastDead: ""
     };
   },
-  pieceMap: function(piece){
+  deadPiece: function(piece, state, lastMove) {
+    // `state` is 'dead', 'alive', or 'unborn'
     var classes = []
     classes.push('banqi-square');
-    classes.push('dead');
-    if (this.props.lastDead == piece){
+    classes.push(state);
+    if (lastMove) {
         classes.push('last-move');
-        this.props.lastDead = ''; // Yuck
     }
     classes.push(NotationToCss[piece]);
     var classString = classes.reduce(function(p, c) { return p + " " + c});
     return <div className={classString} />
+  },
+  deadPieces: function(all, dead, alive) {
+    var lastDead = this.props.lastDead;
+    var self = this;
+    dead = dead.reduce(function(p, c) { return p + " " + c}, '');
+    alive = alive.reduce(function(p, c) { return p + " " + c}, '');
+    return all.split('').map(function(piece) {
+      var state = 'unborn'
+      var lastMove = false;
+      if (dead.indexOf(piece) >= 0) {
+        state = 'dead';
+        dead = dead.replace(piece, '');
+        if (piece == lastDead) {
+          lastMove = true;
+          lastDead = ''
+        }
+      } else if (alive.indexOf(piece) >= 0) {
+        state = 'alive';
+        alive = alive.replace(piece, '')
+      }
+      return self.deadPiece(piece, state, lastMove);
+    })
+  },
+  collectKnownPieces: function(board) {
+    var knownPieces = [];
+    for (var rank=0; rank < 4; rank++) {
+      for (var file=0; file < 8; file++) {
+        var piece = board[rank][file]
+        if (piece != '?' && piece != '.') {
+          knownPieces.push(piece);
+        }
+      }
+    }
+    return knownPieces;
   }
 });
 
-PieceStrength = ["Q","P","H","C","E","G","K"]                
+PieceStrength = ["Q","P","H","C","E","G","K"]
 StrengthCompareD = function(a,b){
   return StrengthCompare(a,b,true)
 };
