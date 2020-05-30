@@ -32,22 +32,23 @@ var DeadPieces = React.createClass({
     };
   },
   deadPiece: function(piece, state, lastMove) {
-    // `state` is 'dead', 'alive', or 'unborn'
+    // `state` is 'dead', 'live', or 'unborn'
     var classes = []
     classes.push('banqi-square');
     classes.push(state);
     if (lastMove) {
         classes.push('last-move');
     }
+    var type = NotationToCss[piece];
     classes.push(NotationToCss[piece]);
     var classString = classes.reduce(function(p, c) { return p + " " + c});
-    return <div className={classString} />
+    return <div className={classString} title={state + " " + type} />
   },
-  deadPieces: function(all, dead, alive) {
+  deadPieces: function(all, dead, live) {
     var lastDead = this.props.lastDead;
     var self = this;
     dead = dead.reduce(function(p, c) { return p + " " + c}, '');
-    alive = alive.reduce(function(p, c) { return p + " " + c}, '');
+    live = live.reduce(function(p, c) { return p + " " + c}, '');
     return all.split('').map(function(piece) {
       var state = 'unborn'
       var lastMove = false;
@@ -58,9 +59,9 @@ var DeadPieces = React.createClass({
           lastMove = true;
           lastDead = ''
         }
-      } else if (alive.indexOf(piece) >= 0) {
-        state = 'alive';
-        alive = alive.replace(piece, '')
+      } else if (live.indexOf(piece) >= 0) {
+        state = 'live';
+        live = live.replace(piece, '')
       }
       return self.deadPiece(piece, state, lastMove);
     })
