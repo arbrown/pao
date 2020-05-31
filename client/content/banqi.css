@@ -113,12 +113,24 @@ html:before {
   margin:2px;
   display:inline-block;
 }
-.dead-pieces .banqi-square.live {
-    opacity: 20%;
+.dead-pieces .banqi-square.dead::before {
+    content: "";
+    background-color: black;
+    opacity: 40%;
+    border-radius: ;
+    width:inherit;
+    height:inherit;
+    position: fixed;
 }
-.dead-pieces .banqi-square.unborn {
-  opacity: 20%;
-  background-image: url("/images/unflipped-piece.svg");
+
+.dead-pieces .banqi-square.unborn::before {
+    content: "";
+    background-color: green;
+    opacity: 40%;
+    border-radius: 50%;
+    width:inherit;
+    height:inherit;
+    position: fixed;
 }
 
 .lobby-game .banqi-square {
