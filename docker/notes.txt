@@ -1,0 +1,11 @@
+# the commands below should be run from the repo base (.. from this file)
+
+# build the docker image. first time will take longer due to getting dependencies.
+docker build -t test -f docker/Dockerfile .
+
+# run the image, using bash, rm when done
+docker run --publish 2015:2015 -it --rm test:latest /bin/bash
+
+# run the image, using pao.go.  access with localhost:2015, rm when done
+docker run --publish 2015:2015 -it --rm test:latest
+
