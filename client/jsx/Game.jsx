@@ -20,7 +20,7 @@ var Game = React.createClass({
          board={this.state.board} />
       <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
-      <button className="resignButton" onClick={this.resign}>Resign</button>
+      { !this.state.gameOver ? <button className="resignButton" onClick={this.resign}>Resign</button> : null }
     </div>
     )
   },
@@ -150,12 +150,10 @@ var GameState= React.createClass({
       headers.push(<h2 className="game-info-header">Game Over</h2>);
       if (this.props.won){
         headers.push(<h3 className="game-info-subheader">You win!</h3>)
-      }
-      else {
+      } else {
         headers.push(<h3 className="game-info-subheader">You lose.</h3>)
       }
-    }
-    if (this.props.numPlayers < 2) {
+    } else if (this.props.numPlayers < 2) {
         headers.push(<h2 style={{color:this.props.turnColor}}>Waiting For Opponent</h2>);
     } else {
         headers.push(<h2 style={{color:this.props.turnColor}}>{this.props.whoseTurn}'s Turn</h2>);
