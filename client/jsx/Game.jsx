@@ -20,7 +20,7 @@ var Game = React.createClass({
          board={this.state.board} />
       <Chat submitChat={this.submitChat} chats={this.state.chats} />
       <button className="goBackButton"><a href="/">Go back to lobby</a></button>
-      <button className="resignButton" onClick={this.resign}>Resign</button>
+      { !this.state.gameOver ? <button className="resignButton" onClick={this.resign}>Resign</button> : null }
     </div>
     )
   },
