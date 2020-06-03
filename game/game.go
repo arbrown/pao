@@ -367,7 +367,7 @@ func (g *Game) listenPlayer(p *player) {
 	}
 	fmt.Println("Stopping listen loop")
 	go readLoop(p.ws)
-	if p == g.red || p == g.black {
+	if p == g.CurrentPlayer || p == g.NextPlayer {
 		g.endGame()
 	}
 }
