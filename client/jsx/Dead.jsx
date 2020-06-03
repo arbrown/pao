@@ -2,6 +2,7 @@ var DeadPieces = React.createClass({
   render : function(){
     var redDead = [];
     var blackDead = [];
+    var chances = this.computeRemainingChances(this.props.dead, this.props.board);
     var dead = this.props.dead;
     for (var i= 0; i<dead.length; i++){
       var color = NotationToColor[dead[i]]
@@ -16,8 +17,8 @@ var DeadPieces = React.createClass({
       blackDead.sort(StrengthCompareD);
     }
     var livePieces = this.collectKnownPieces(this.props.board)
-    var redPieces = this.deadPieces("kggeecchhpppppqq", redDead, livePieces);
-    var blackPieces = this.deadPieces("KGGEECCHHPPPPPQQ", blackDead, livePieces);
+    var redPieces = this.deadPieces("kggeecchhpppppqq", redDead, livePieces, chances);
+    var blackPieces = this.deadPieces("KGGEECCHHPPPPPQQ", blackDead, livePieces, chances);
     return (
       <div className="dead-pieces">
         <div className="red-dead">{redPieces}</div>
@@ -31,7 +32,7 @@ var DeadPieces = React.createClass({
       lastDead: ""
     };
   },
-  deadPiece: function(piece, state, lastMove) {
+  deadPiece: function(piece, state, lastMove, chances) {
     // `state` is 'dead', 'live', or 'unborn'
     var classes = []
     classes.push('banqi-square');
@@ -42,9 +43,13 @@ var DeadPieces = React.createClass({
     var type = NotationToCss[piece];
     classes.push(NotationToCss[piece]);
     var classString = classes.reduce(function(p, c) { return p + " " + c});
-    return <div className={classString} title={state + " " + type} />
+    var title = state + " " + type;
+    if (state == 'unborn') {
+        title += " " + chances[type] + "%";
+    }
+    return <div className={classString} title={title} />
   },
-  deadPieces: function(all, dead, live) {
+  deadPieces: function(all, dead, live, chances) {
     var lastDead = this.props.lastDead;
     var self = this;
     dead = dead.reduce(function(p, c) { return p + " " + c}, '');
@@ -63,7 +68,7 @@ var DeadPieces = React.createClass({
         state = 'live';
         live = live.replace(piece, '')
       }
-      return self.deadPiece(piece, state, lastMove);
+      return self.deadPiece(piece, state, lastMove, chances);
     })
   },
   collectKnownPieces: function(board) {
@@ -77,6 +82,34 @@ var DeadPieces = React.createClass({
       }
     }
     return knownPieces;
+  },
+    computeRemainingChances : function(dead, board) {
+      var remaining = 'kggeecchhpppppqq' + 'KGGEECCHHPPPPPQQ';
+      var chances = {};
+      dead = dead.concat(this.collectKnownPieces(board));
+      var pieceCounts = {}
+      for (var i in dead) {
+          var piece = dead[i];
+          var index = remaining.indexOf(piece);
+          remaining = remaining.slice(0, index) + remaining.slice(index + 1);
+      }
+
+      for (var i = 0; i< remaining.length; i++) {
+          var piece = remaining[i];
+          var type = NotationToCss[piece];
+          if (pieceCounts[type]) {
+              pieceCounts[type]++
+          } else {
+              pieceCounts[type] = 1;
+          }
+      }
+      for (var type in pieceCounts) {
+          if (remaining.indexOf(piece) != -1) {
+              var percent = ((pieceCounts[type] / remaining.length) * 100).toFixed(2);
+              chances[type] =  percent;
+          }
+      }
+      return chances;
   }
 });
 
