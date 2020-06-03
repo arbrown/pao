@@ -120,12 +120,8 @@ func readLoop(c *websocket.Conn) {
 }
 
 func (g *Game) startGame() {
-	defer func() {
-		fmt.Println("Removing game from list")
-		g.removeGameChan <- g
-		fmt.Println("Closing web sockets")
-		g.closeWebSockets()
-	}()
+	defer g.endGame()
+
 	fmt.Println("game loop started")
 	defer func() { fmt.Println("game loop ended") }()
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -312,9 +308,10 @@ func (g *Game) reportVictory(victor, loser *player, winColor string) {
 }
 
 func (g *Game) endGame() {
-	fmt.Println("GameOverChan <- true")
+	g.removeGameChan <- g
 	fmt.Printf("gameOverChan: %v\n", g.gameOverChan)
 	g.gameOverChan <- true
+	g.closeWebSockets()
 	fmt.Println("Trying to return from endGame")
 	return
 }
