@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/apexskier/httpauth"
+	"github.com/arbrown/pao/game/gamestate"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,10 +18,8 @@ import (
 // ban qi game that the server is hosting.
 type Game struct {
 	ID                        string
+	gameState                 gamestate.Gamestate
 	black, red                *player
-	knownBoard                [][]string
-	remainingPieces           []string
-	deadPieces                []string
 	lastMove                  []string
 	lastDead                  string
 	active                    bool
@@ -125,7 +124,7 @@ func (g *Game) startGame() {
 	fmt.Println("game loop started")
 	defer func() { fmt.Println("game loop ended") }()
 	rand.Seed(time.Now().UTC().UnixNano())
-	g.knownBoard = generateUnknownBoard()
+	g.gameState.KnownBoard = generateUnknownBoard()
 	for {
 		fmt.Println("Listening!")
 		select {
@@ -217,9 +216,9 @@ func (g *Game) broadcastBoard() {
 	}
 	r := boardCommand{
 		Action:     "board",
-		Board:      g.knownBoard,
+		Board:      g.gameState.KnownBoard,
 		YourTurn:   g.NextPlayer != nil,
-		Dead:       g.deadPieces,
+		Dead:       g.gameState.DeadPieces,
 		LastDead:   g.lastDead,
 		LastMove:   g.lastMove,
 		WhoseTurn:  g.CurrentPlayer.Name,
@@ -384,15 +383,17 @@ func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 		// but I'm not sure how to fix it atm...  I need a go expert.
 		removeGameChan: removeGameChan,
 		db:             db,
-		remainingPieces: []string{
-			"K", "k",
-			"G", "G", "g", "g",
-			"E", "E", "e", "e",
-			"C", "C", "c", "c",
-			"H", "H", "h", "h",
-			"P", "P", "P", "P", "P", "Q", "Q",
-			"p", "p", "p", "p", "p", "q", "q"},
-		deadPieces: make([]string, 0),
+		gameState: gamestate.Gamestate{
+			RemainingPieces: []string{
+				"K", "k",
+				"G", "G", "g", "g",
+				"E", "E", "e", "e",
+				"C", "C", "c", "c",
+				"H", "H", "h", "h",
+				"P", "P", "P", "P", "P", "Q", "Q",
+				"p", "p", "p", "p", "p", "q", "q"},
+			DeadPieces: make([]string, 0),
+		},
 		pieceToInt: map[string]int{
 			"K": 6, "k": 6, "G": 5, "g": 5,
 			"E": 4, "e": 4, "C": 3, "c": 3,
@@ -451,17 +452,15 @@ func (g *Game) tryMove(pc playerCommand) bool {
 
 func (g *Game) flip(m *move) bool {
 	srcFile, srcRank, _, _ := m.getCoords()
-	if g.knownBoard[srcRank][srcFile] != "?" {
+	if g.gameState.KnownBoard[srcRank][srcFile] != "?" {
 		//can't flip that!
 		return false
 	}
 	// get a random piece from the remaining pieces
-	index := rand.Intn(len(g.remainingPieces))
-	piece := g.remainingPieces[index]
-	g.knownBoard[srcRank][srcFile] = piece
-	//fmt.Printf("Flipped one of %d remaining pieces!\n", len(g.remainingPieces))
-	//fmt.Printf("Remaining Pieces:\n%v\n", g.remainingPieces)
-	if len(g.remainingPieces) == 32 {
+	index := rand.Intn(len(g.gameState.RemainingPieces))
+	piece := g.gameState.RemainingPieces[index]
+	g.gameState.KnownBoard[srcRank][srcFile] = piece
+	if len(g.gameState.RemainingPieces) == 32 {
 		//First move! Assign colors based on piece
 		switch piece {
 		case "K", "G", "E", "C", "H", "P", "Q":
@@ -474,7 +473,7 @@ func (g *Game) flip(m *move) bool {
 		}
 		g.broadcastColors()
 	}
-	g.remainingPieces = append(g.remainingPieces[:index], g.remainingPieces[index+1:]...)
+	g.gameState.RemainingPieces = append(g.gameState.RemainingPieces[:index], g.gameState.RemainingPieces[index+1:]...)
 	return true
 }
 
@@ -484,7 +483,7 @@ func (g *Game) performMove(m *move) (bool, string) {
 		return false, ""
 	}
 
-	srcPiece, tgtPiece := g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile]
+	srcPiece, tgtPiece := g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile]
 	if tgtPiece != "." {
 		// Not an empty space, need to check if we can attack it
 		if tgtPiece == "?" {
@@ -516,13 +515,13 @@ func (g *Game) performMove(m *move) (bool, string) {
 		hopped := 0
 		if moveRank != 0 {
 			for i := math.Min(float64(srcRank), float64(tgtRank)) + 1; i < math.Max(float64(srcRank), float64(tgtRank)); i++ {
-				if g.knownBoard[int(i)][srcFile] != "." {
+				if g.gameState.KnownBoard[int(i)][srcFile] != "." {
 					hopped++
 				}
 			} // Can SOMEONE explain to me the need for all the casting???
 		} else {
 			for i := math.Min(float64(srcFile), float64(tgtFile)) + 1; i < math.Max(float64(srcFile), float64(tgtFile)); i++ {
-				if g.knownBoard[srcRank][int(i)] != "." {
+				if g.gameState.KnownBoard[srcRank][int(i)] != "." {
 					hopped++
 				}
 			}
@@ -533,10 +532,10 @@ func (g *Game) performMove(m *move) (bool, string) {
 	}
 
 	// at this point you should be able to make a move... I hope
-	g.knownBoard[srcRank][srcFile], g.knownBoard[tgtRank][tgtFile] = ".", srcPiece
+	g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile] = ".", srcPiece
 	// add the target piece to dead piece if it was not an empty square
 	if tgtPiece != "." {
-		g.deadPieces = append(g.deadPieces, tgtPiece)
+		g.gameState.DeadPieces = append(g.gameState.DeadPieces, tgtPiece)
 		g.lastDead = tgtPiece
 	}
 
@@ -546,20 +545,20 @@ func (g *Game) performMove(m *move) (bool, string) {
 func (g *Game) checkVictory() (victor *player, won bool) {
 	defer func() {
 		fmt.Printf("Game over =%v because:\n", won)
-		fmt.Printf("remainingPieces: %v\n", g.remainingPieces)
+		fmt.Printf("remainingPieces: %v\n", g.gameState.RemainingPieces)
 	}()
 	// is black out of pieces?
 	blackRemains, redRemains := false, false
 	for i := 0; i < 4 && !(blackRemains && redRemains); i++ {
 		for j := 0; j < 8 && !(blackRemains && redRemains); j++ {
-			p := g.knownBoard[i][j]
+			p := g.gameState.KnownBoard[i][j]
 			redRemains = redRemains || isRed(p)
 			blackRemains = blackRemains || isBlack(p)
 			//fmt.Printf("Examined {%v}.  Red: %v Black %v\n", p, isRed(p), isBlack(p))
 		}
 	}
 
-	for _, p := range g.remainingPieces {
+	for _, p := range g.gameState.RemainingPieces {
 		if redRemains && blackRemains {
 			break
 		}
@@ -584,7 +583,7 @@ func (g *Game) checkVictory() (victor *player, won bool) {
 }
 
 func (g *Game) currentPlayerOwns(rank, file int) bool {
-	switch g.knownBoard[rank][file] {
+	switch g.gameState.KnownBoard[rank][file] {
 	case "K", "G", "E", "C", "H", "P", "Q":
 		return g.CurrentPlayer == g.black
 	case "k", "g", "e", "c", "h", "p", "q":
