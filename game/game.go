@@ -625,5 +625,5 @@ func generateUnknownBoard() [][]string {
 var taunts = []string{
 	"I think you should resign.",
 	"This just isn't your game.",
-	"Do you still think you can win?",
+	"Good heavens, are you still trying to win?",
 	"Stop! He's already dead!"}
