@@ -13,6 +13,7 @@ import (
 	"github.com/arbrown/pao/game/command"
 	"github.com/arbrown/pao/game/gamestate"
 	"github.com/arbrown/pao/game/player"
+	"github.com/arbrown/pao/settings"
 	"github.com/gorilla/websocket"
 )
 
@@ -45,14 +46,17 @@ var upgrader = &websocket.Upgrader{
 
 // Join causes a connection to join a game as a websocket and player
 func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
-	//fmt.Printf("w=%+v\nr=%+v\n", w, r)
-	fmt.Printf("upgrader= %+v\n", upgrader)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Err = %v\n", err.Error())
+		return false
+	}
+	return g.JoinWs(conn, name, user)
+}
+
+// JoinWs joins a game with an existing websocket
+func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
 	if g.CurrentPlayer == nil {
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			fmt.Printf("Err = %v\n", err.Error())
-			return false
-		}
 		g.CurrentPlayer = player.NewPlayer(conn, name, user, false)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.CurrentPlayer)
@@ -60,32 +64,41 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 		return true
 	} else if g.NextPlayer == nil {
 		fmt.Println("Trying to join as #2")
-		conn, err := upgrader.Upgrade(w, r, nil)
-		fmt.Println("WS upgraded...")
-		fmt.Printf("err=%v\n", err)
-		if err != nil {
-			fmt.Printf("Error joining as #2: %v\n", err.Error())
-			return false
-		}
 		g.NextPlayer = player.NewPlayer(conn, name, user, false)
 		go g.listenPlayer(g.NextPlayer)
 		return true
 	} else {
-		g.JoinKibitz(w, r, name, user)
+		return g.JoinKibitz(conn, name, user)
 	}
-	return false
 }
 
 // JoinKibitz will create a new 'player' and add to the group of kibitzers in a game
-func (g *Game) JoinKibitz(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Printf("Err = %v\n", err.Error())
-		return false
-	}
+func (g *Game) JoinKibitz(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
 	kibitzer := player.NewPlayer(conn, name, user, true)
 	g.kibitzers = append(g.kibitzers, kibitzer)
 	go g.listenPlayer(kibitzer)
+	return true
+}
+
+// JoinAi will cause the specified AI to join the game
+func (g *Game) JoinAi(ai settings.AiConfig) bool {
+	header := http.Header{"Accept-Encoding": []string{"gzip"}}
+
+	dialer := websocket.Dialer{
+		Subprotocols:    []string{},
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	fmt.Printf("Dialing AI: %v\n", ai.Address)
+	conn, _, err := dialer.Dial(ai.Address, header)
+
+	if err != nil {
+		fmt.Printf("Could not dial AI successfully: %v\n", err.Error())
+		return false
+	}
+	fmt.Println("AI dialed successfully")
+
+	g.JoinWs(conn, ai.Name, nil)
 	return true
 }
 
