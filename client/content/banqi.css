@@ -120,7 +120,7 @@ html:before {
     border-radius: 50%;
     width:inherit;
     height:inherit;
-    position: fixed;
+    position: absolute;
 }
 
 .dead-pieces .banqi-square.unborn::before {
@@ -130,7 +130,7 @@ html:before {
     border-radius: 50%;
     width:inherit;
     height:inherit;
-    position: fixed;
+    position: absolute;
 }
 
 .lobby-game .banqi-square {
