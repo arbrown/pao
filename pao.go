@@ -42,7 +42,6 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan, db: db})
