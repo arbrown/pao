@@ -33,9 +33,16 @@ type authConfig struct {
 	EncryptionKey string
 }
 
+// AiConfig contains information necessary to connect to an external AI server
+type AiConfig struct {
+	Name    string
+	Address string
+}
+
 // PaoSettings for pao as specified
 // in conf/paoSettings.json
 type PaoSettings struct {
 	DbConfig   dbConfig
 	AuthConfig authConfig
+	Ais        []AiConfig
 }

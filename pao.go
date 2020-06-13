@@ -45,6 +45,7 @@ func main() {
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/listGames", listGamesHandler{games: games})
 	httpMux.Handle("/game", gameHandler{games: games, removeGameChan: removeGameChan, db: db})
+	httpMux.Handle("/playAi", playAiHandler{games: games, removeGameChan: removeGameChan, db: db, ais: s.Ais})
 	httpMux.HandleFunc("/login", a.PostLogin)
 	httpMux.HandleFunc("/register", a.PostRegister)
 	httpMux.HandleFunc("/logout", a.HandleLogout)
@@ -80,6 +81,13 @@ type gameHandler struct {
 	games          map[string]*game.Game
 	removeGameChan chan *game.Game
 	db             *sql.DB
+}
+
+type playAiHandler struct {
+	games          map[string]*game.Game
+	removeGameChan chan *game.Game
+	db             *sql.DB
+	ais            []settings.AiConfig
 }
 
 type listGamesHandler struct {
@@ -137,7 +145,6 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// no id specified, make the game
 		newID := 0
-		fmt.Printf("128: user: %+v\n", user)
 		for _, exists := gh.games[strconv.Itoa(newID)]; exists; _, exists = gh.games[strconv.Itoa(newID)] {
 			newID++
 		}
@@ -149,4 +156,51 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			delete(gh.games, g.ID)
 		}
 	}
+}
+
+// Create a new game against an AI and return the game ID to the client
+func (pah playAiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("ai")
+	var ai settings.AiConfig
+	for _, aic := range pah.ais {
+		if aic.Name == name {
+			ai = aic
+		}
+	}
+	if ai.Name == "" {
+		fmt.Printf("Couldn't find AI: '%v\n'", name)
+	}
+
+	newID := 0
+	for _, exists := pah.games[strconv.Itoa(newID)]; exists; _, exists = pah.games[strconv.Itoa(newID)] {
+		newID++
+	}
+
+	g := game.NewGame(strconv.Itoa(newID), pah.removeGameChan, pah.db)
+	fmt.Printf("Made new game %d\n", newID)
+	pah.games[g.ID] = g
+	// if ok := g.Join(w, r, name, user); !ok {
+	// 	delete(pah.games, g.ID)
+	// }
+
+	fmt.Printf("AI tries to join game: %v\n", g)
+	if ok := g.JoinAi(ai); !ok {
+		// if game join fails, remove game from list
+		delete(pah.games, g.ID)
+	}
+
+	type aiGameResponse struct {
+		ID string
+	}
+
+	var resp = aiGameResponse{
+		ID: g.ID,
+	}
+	js, err := json.Marshal(resp)
+	if err != nil {
+		fmt.Printf("Couldn't write json response: %v\n", resp)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }

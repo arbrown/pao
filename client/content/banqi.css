@@ -78,6 +78,10 @@ td.banqi-square.selected{
 
 }
 
+.lobby div button {
+    margin-top: 10px;
+}
+
 li.lobby-game {
   border: 1px solid black;
   display:inline-block;
