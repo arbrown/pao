@@ -96,7 +96,6 @@ func (f *flippy) processBoard(bc command.BoardCommand) {
 			return
 		}
 	}
-
 }
 
 func (f *flippy) flip(rank, file int) {

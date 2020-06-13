@@ -51,20 +51,20 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 		fmt.Printf("Err = %v\n", err.Error())
 		return false
 	}
-	return g.JoinWs(conn, name, user)
+	return g.JoinWs(conn, name, user, false)
 }
 
 // JoinWs joins a game with an existing websocket
-func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
+func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool) bool {
 	if g.CurrentPlayer == nil {
-		g.CurrentPlayer = player.NewPlayer(conn, name, user, false)
+		g.CurrentPlayer = player.NewPlayer(conn, name, user, false, bot)
 		fmt.Println("Joined as #1")
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
 		return true
 	} else if g.NextPlayer == nil {
 		fmt.Println("Trying to join as #2")
-		g.NextPlayer = player.NewPlayer(conn, name, user, false)
+		g.NextPlayer = player.NewPlayer(conn, name, user, false, bot)
 		go g.listenPlayer(g.NextPlayer)
 		return true
 	} else {
@@ -74,7 +74,7 @@ func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData
 
 // JoinKibitz will create a new 'player' and add to the group of kibitzers in a game
 func (g *Game) JoinKibitz(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
-	kibitzer := player.NewPlayer(conn, name, user, true)
+	kibitzer := player.NewPlayer(conn, name, user, true, false)
 	g.kibitzers = append(g.kibitzers, kibitzer)
 	go g.listenPlayer(kibitzer)
 	return true
@@ -98,7 +98,7 @@ func (g *Game) JoinAi(ai settings.AiConfig) bool {
 	}
 	fmt.Println("AI dialed successfully")
 
-	g.JoinWs(conn, ai.Name, nil)
+	g.JoinWs(conn, ai.Name, nil, true)
 	return true
 }
 
@@ -311,6 +311,10 @@ func (g *Game) reportVictory(victor, loser *player.Player, winColor string) {
 	}
 	if loser.User != nil {
 		loserName = loser.User.Username
+	}
+
+	if victor.Bot || loser.Bot {
+		return
 	}
 
 	if g.db == nil {

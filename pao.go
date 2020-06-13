@@ -168,7 +168,7 @@ func (pah playAiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if ai.Name == "" {
-		fmt.Printf("Couldn't find AI: '%v\n'", name)
+		fmt.Printf("Couldn't find AI: '%v'\n", name)
 	}
 
 	newID := 0

@@ -6,12 +6,13 @@ import (
 )
 
 // NewPlayer will create a new player (or kibitzer) for a pao server
-func NewPlayer(c *websocket.Conn, name string, user *httpauth.UserData, kibitzer bool) *Player {
+func NewPlayer(c *websocket.Conn, name string, user *httpauth.UserData, kibitzer bool, bot bool) *Player {
 	return &Player{
 		Ws:       c,
 		Name:     name,
 		User:     user,
 		Kibitzer: kibitzer,
+		Bot:      bot,
 	}
 }
 
@@ -21,4 +22,5 @@ type Player struct {
 	Ws       *websocket.Conn
 	User     *httpauth.UserData
 	Kibitzer bool
+	Bot      bool
 }
