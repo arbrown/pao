@@ -645,4 +645,16 @@ var taunts = []string{
 	"I think you should resign.",
 	"This just isn't your game.",
 	"Good heavens, are you still trying to win?",
-	"Stop! He's already dead!"}
+	"Stop! He's already dead!",
+	"Instead of watching this, I think I'll go find a lake of piranhas to jump in.",
+	"Ban Chi is _supposed_ to be fun.",
+	"Please, for the love of all that's good and holy, resign.",
+	"Quitting is a temporary setback. Pain like this lasts forever.",
+	"Quitting is not giving up, it's choosing to focus on something more interesting.",
+	"Success in life is a slow process. Sometimes quitting what you're doing now speeds it up.",
+	"Quitting is not a problem. Not knowing when to quit, is.",
+	"Quitting is better than deluding yourself that you can win.",
+	"Quitting is choosing happiness over pain.",
+	"You'll never find a good game if you can't let go of the bad ones.",
+	"You are the only one that can decide how long you will walk in hell.",
+}
