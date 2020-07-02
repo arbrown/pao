@@ -562,6 +562,62 @@ func (g *Game) performMove(m *move) (bool, string) {
 	return true, tgtPiece
 }
 
+// Some logic is duplicated with the function performMove. Look into reusing logic where possible.
+func forecastMove(currentBoard [][]string, pieceToInt map[string]int, canAttack [][]bool, srcFile, srcRank, tgtFile, tgtRank int) (bool, [][]string) {
+	newBoard := currentBoard
+	srcPiece, tgtPiece := currentBoard[srcRank][srcFile], currentBoard[tgtRank][tgtFile]
+	if tgtPiece != "." {
+		// Not an empty space, need to check if we can attack it
+		if tgtPiece == "?" {
+			// trying to attack an unflipped piece?  You monster!
+			return false, currentBoard
+		}
+		srcPower, tgtPower := pieceToInt[srcPiece], pieceToInt[tgtPiece]
+		if !canAttack[srcPower][tgtPower] {
+			return false, currentBoard
+		}
+	}
+
+	// validate the legality of the move
+	if (srcPiece != "Q" && srcPiece != "q") || tgtPiece == "." {
+		// no cannon attack involved, move must be directly adjacent
+		if (math.Abs(float64(srcRank-tgtRank)) + math.Abs(float64(srcFile-tgtFile))) != 1 {
+			// invalid move
+			return false, currentBoard
+		}
+	} else {
+		// now the harder part
+		moveRank, moveFile := srcRank-tgtRank, srcFile-tgtFile
+		// One of those should be 0
+		if moveRank != 0 && moveFile != 0 {
+			// diagonal cannon shot... very sneaky
+			return false, currentBoard
+		}
+		// walk from one end to the other, expecting one piece exactly
+		hopped := 0
+		if moveRank != 0 {
+			for i := math.Min(float64(srcRank), float64(tgtRank)) + 1; i < math.Max(float64(srcRank), float64(tgtRank)); i++ {
+				if currentBoard[int(i)][srcFile] != "." {
+					hopped++
+				}
+			} // Can SOMEONE explain to me the need for all the casting???
+		} else {
+			for i := math.Min(float64(srcFile), float64(tgtFile)) + 1; i < math.Max(float64(srcFile), float64(tgtFile)); i++ {
+				if currentBoard[srcRank][int(i)] != "." {
+					hopped++
+				}
+			}
+		}
+		if hopped != 1 {
+			return false, currentBoard
+		}
+	}
+
+	newBoard[srcRank][srcFile], newBoard[tgtRank][tgtFile] = ".", srcPiece
+
+	return true, newBoard
+}
+
 func (g *Game) checkVictory() (victor *player.Player, won bool) {
 	defer func() {
 		fmt.Printf("Game over =%v because:\n", won)
@@ -657,4 +713,7 @@ var taunts = []string{
 	"Quitting is choosing happiness over pain.",
 	"You'll never find a good game if you can't let go of the bad ones.",
 	"You are the only one that can decide how long you will walk in hell.",
+	"This little tour of death was a miserable failure!",
+	"Lunatic on the loose!",
+	"A beautiful evening for dark deeds",
 }
