@@ -14,7 +14,7 @@ var Login = React.createClass({
     } else {
       return (
         <div className="login-div">
-          {this.state.user}
+          {this.state.user}<br />
           <a href="/logout">Sign Out</a>
         </div>
       )
