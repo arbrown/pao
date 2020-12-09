@@ -1,0 +1,46 @@
+steps:
+        - name: 'mirror.gcr.io/library/golang'
+          args: ['go', 'version']
+
+        - name: 'debian'
+          args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf']
+
+        - name: 'mirror.gcr.io/library/golang'
+          env: [
+                      'GO111MODULE=on',
+                      'GOPROXY=https://proxy.golang.org,direct',
+                      'GOOS=linux',
+                      'GOARCH=amd64'
+            ]
+          args: ['go', 'build', '-o', 'deploy/usr/bin/pao', '${_SRC_DIRECTORY}/']
+
+        - name: 'mirror.gcr.io/library/golang'
+          env: [
+                      'GO111MODULE=on',
+                      'GOPROXY=https://proxy.golang.org,direct',
+                      'GOOS=linux',
+                      'GOARCH=amd64'
+            ]
+          args: ['go', 'build', '-o', 'deploy/usr/bin/flippy', '${_SRC_DIRECTORY}/ai/flippy/']
+          
+        - name: 'debian'
+          args: ['cp', 'pao.service', 'deploy/etc/systemd/system/']
+
+        - name: 'debian'
+          args: ['cp', 'flippy.service', 'deploy/etc/systemd/system/']
+
+        - name: 'debian'
+          args: ['cp', 'conf/paoSettings.json', 'deploy/conf/paoSettings.json']
+        
+        - name: 'debian'
+          args: ['cp', '-R', './client', 'deploy/client']
+          
+        - name: 'debian'
+          args: ['tar', '-czf', '${_DEPLOY_FILENAME}', '-C', './deploy', '.']
+        - name: 'debian'
+          args: ['ls']
+
+artifacts:
+       objects:
+               location: '${_DEPLOY_DIR}'
+               paths: ['${_DEPLOY_FILENAME}']
