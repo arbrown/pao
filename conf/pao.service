@@ -1,0 +1,10 @@
+[Unit]
+Description=Pao; a ban qi server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pao
+Environment=PORT=80
+
+[Install]
+WantedBy=multi-user.target

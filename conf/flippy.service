@@ -1,0 +1,10 @@
+[Unit]
+Description=Flippy; a ban qi bot
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/flippy
+Environment=FLIPPYPORT=2020
+
+[Install]
+WantedBy=multi-user.target
