@@ -59,25 +59,19 @@ var Lobby = React.createClass({
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var data = JSON.parse(xhr.responseText)
-                comp.setState({ games: data });
+                if (data) {
+                    comp.setState({ games: data });
+                } else {
+                    comp.setState({ games: [] });
+                }
             }
         }
         xhr.open("GET", "/listGames", true);
         xhr.send();
     },
     componentDidMount: function () {
-        var comp = this;
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                var data = JSON.parse(xhr.responseText)
-                if (data) {
-                    comp.setState({ games: data });
-                }
-            }
-        }
-        xhr.open("GET", "/listGames", true);
-        xhr.send();
+        this.Reload();
+        setInterval(this.Reload, 10*1000);
     },
     getInitialState: function () {
         return {
