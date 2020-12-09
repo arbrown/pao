@@ -30,9 +30,6 @@ steps:
           args: ['cp', 'conf/flippy.service', 'deploy/etc/systemd/system/']
 
         - name: 'debian'
-          args: ['cp', 'conf/paoSettings.json', 'deploy/conf/paoSettings.json']
-        
-        - name: 'debian'
           args: ['cp', '-R', './client', 'deploy/client']
           
         - name: 'debian'
