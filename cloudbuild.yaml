@@ -12,7 +12,7 @@ steps:
                       'GOOS=linux',
                       'GOARCH=amd64'
             ]
-          args: ['go', 'build', '-o', 'deploy/usr/bin/pao', '.']
+          args: ['go', 'build', '-o', 'deploy/usr/bin/pao', '${_SRC_DIRECTORY}/']
 
         - name: 'mirror.gcr.io/library/golang'
           env: [
@@ -21,7 +21,7 @@ steps:
                       'GOOS=linux',
                       'GOARCH=amd64'
             ]
-          args: ['go', 'build', '-o', 'deploy/usr/bin/flippy', './ai/flippy/']
+          args: ['go', 'build', '-o', 'deploy/usr/bin/flippy', '${_SRC_DIRECTORY}/ai/flippy/']
           
         - name: 'debian'
           args: ['cp', 'pao.service', 'deploy/etc/systemd/system/']
