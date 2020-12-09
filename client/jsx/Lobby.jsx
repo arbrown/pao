@@ -59,7 +59,11 @@ var Lobby = React.createClass({
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var data = JSON.parse(xhr.responseText)
-                comp.setState({ games: data });
+                if (data) {
+                    comp.setState({ games: data });
+                } else {
+                    comp.setState({ games: [] });
+                }
             }
         }
         xhr.open("GET", "/listGames", true);
