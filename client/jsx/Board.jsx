@@ -71,17 +71,18 @@ var Board = React.createClass({
     var s = this.state.selected;
     var sp = s ? this.props.board[s.rank][s.file] : null;
     var cp = this.props.board[clicked.rank][clicked.file];
-    if (s && s.rank == clicked.rank && s.file == clicked.file){
-      if (this.props.myTurn && sp == '?'){
+    if (s && s.rank == clicked.rank && s.file == clicked.file) {
+      if (sp == '?' && (this.props.myTurn || this.props.lastMove != null)) {
         this.flipPiece(clicked);
       }
-      this.setState({selected: null});
+      this.setState({ selected: null });
     }
-    else{ if (s && this.IOwn(s) && this.props.myTurn){
-      this.move(s, clicked);
-      this.setState({selected: null});
-    } else{
-        this.setState({selected: clicked});
+    else {
+      if (s && (this.props.myTurn || this.props.lastMove != null)) {
+        this.move(s, clicked);
+        this.setState({ selected: null });
+      } else {
+        this.setState({ selected: clicked });
       }
     }
   },
