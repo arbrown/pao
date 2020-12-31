@@ -178,7 +178,9 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 	case "board?":
 		g.broadcastBoard()
 	case "move":
-		if ok := g.tryMove(c); ok {
+		if c.P.Kibitzer == true {
+			g.suggestMove(c)
+		} else if ok := g.tryMove(c); ok {
 			// check for a victory
 			if winner, won := g.checkVictory(); won {
 				g.broadcastBoard()
@@ -212,6 +214,28 @@ func (g *Game) resign(p *player.Player) {
 	}
 
 	g.endGame()
+}
+
+func (g *Game) suggestMove(pc command.PlayerCommand) bool {
+	move, err := parseMove(pc.C.Argument)
+	if err != nil {
+		fmt.Printf("Couldn't parse move: %v\n", err.Error())
+		return false
+	}
+	if !(move.isFlip || g.validateMove(move)) {
+		return false
+	}
+	fmt.Printf("Move %v\n", move)
+	fmt.Printf("Valid: %v", move.isValid())
+
+	g.broadcastChat(pc.P, pc.C.Argument, "darkcyan")
+	g.broadcastSuggestion(pc.P, pc.C.Argument)
+	return true
+}
+
+func (g *Game) broadcastSuggestion(from *player.Player, suggestedMove string) {
+	suggestion := command.SuggestCommand{Action: "suggest", Move: suggestedMove, Suggester: from.Name, Auth: from.User != nil && from.User.Username == from.Name}
+	g.broadcast(suggestion)
 }
 
 func (g *Game) suggestResign(p *player.Player) {
@@ -497,10 +521,10 @@ func (g *Game) flip(m *move) bool {
 	return true
 }
 
-func (g *Game) performMove(m *move) (bool, string) {
+func (g *Game) validateMove(m *move) bool {
 	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
 	if !g.currentPlayerOwns(srcRank, srcFile) || g.currentPlayerOwns(tgtRank, tgtFile) {
-		return false, ""
+		return false
 	}
 
 	srcPiece, tgtPiece := g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile]
@@ -508,11 +532,11 @@ func (g *Game) performMove(m *move) (bool, string) {
 		// Not an empty space, need to check if we can attack it
 		if tgtPiece == "?" {
 			// trying to attack an unflipped piece?  You monster!
-			return false, ""
+			return false
 		}
 		srcPower, tgtPower := g.pieceToInt[srcPiece], g.pieceToInt[tgtPiece]
 		if !g.canAttack[srcPower][tgtPower] {
-			return false, ""
+			return false
 		}
 	}
 
@@ -521,7 +545,7 @@ func (g *Game) performMove(m *move) (bool, string) {
 		// no cannon attack involved, move must be directly adjacent
 		if (math.Abs(float64(srcRank-tgtRank)) + math.Abs(float64(srcFile-tgtFile))) != 1 {
 			// invalid move
-			return false, ""
+			return false
 		}
 	} else {
 		// now the harder part
@@ -529,7 +553,7 @@ func (g *Game) performMove(m *move) (bool, string) {
 		// One of those should be 0
 		if moveRank != 0 && moveFile != 0 {
 			// diagonal cannon shot... very sneaky
-			return false, ""
+			return false
 		}
 		// walk from one end to the other, expecting one piece exactly
 		hopped := 0
@@ -547,9 +571,18 @@ func (g *Game) performMove(m *move) (bool, string) {
 			}
 		}
 		if hopped != 1 {
-			return false, ""
+			return false
 		}
 	}
+	return true
+}
+func (g *Game) performMove(m *move) (bool, string) {
+
+	if valid := g.validateMove(m); !valid {
+		return valid, ""
+	}
+	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
+	srcPiece, tgtPiece := g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile]
 
 	// at this point you should be able to make a move... I hope
 	g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile] = ".", srcPiece

@@ -19,6 +19,12 @@ type ChatCommand struct {
 	Auth                           bool
 }
 
+// SuggestCommand is a message from a kibitzer suggesting a move
+type SuggestCommand struct {
+	Action, Move, Suggester string
+	Auth                    bool
+}
+
 // BoardCommand is an update of the board state from server to client
 type BoardCommand struct {
 	Action     string
