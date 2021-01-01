@@ -66,3 +66,6 @@ If a player turned up a red cannon at B4, the notation would be:
 
 #### Theoretical variants
 In theory, in some game variants a ply could involve more than one piece (on either side) or multiple moves (as in double-move Banqi.)  In this case, multiple pieces (and their locations) are separated by commas (,) and multiple moves are separated by semicolons (;).
+
+### Credits
+Some taunts taken from the Usurper source code at https://github.com/rickparrish/Usurper/blob/master/SOURCE/USURPER.
