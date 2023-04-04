@@ -1,5 +1,5 @@
 steps:
-        - name: 'mirror.gcr.io/library/golang'
+        - name: 'registry.hub.docker.com/library/golang'
           args: ['go', 'version']
 
         - name: 'debian'
