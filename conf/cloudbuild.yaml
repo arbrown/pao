@@ -5,7 +5,7 @@ steps:
         - name: 'debian'
           args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf']
 
-        - name: 'mirror.gcr.io/library/golang'
+        - name: 'registry.hub.docker.com/library/golang'
           env: [
                       'GO111MODULE=on',
                       'GOPROXY=https://proxy.golang.org,direct',
@@ -14,7 +14,7 @@ steps:
             ]
           args: ['go', 'build', '-o', 'deploy/usr/bin/pao', '${_SRC_DIRECTORY}/']
 
-        - name: 'mirror.gcr.io/library/golang'
+        - name: 'registry.hub.docker.com/library/golang'
           env: [
                       'GO111MODULE=on',
                       'GOPROXY=https://proxy.golang.org,direct',
