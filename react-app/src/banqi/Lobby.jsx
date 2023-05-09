@@ -1,27 +1,32 @@
-var Lobby = React.createClass({
-    joinNew: function () {
-        React.render(
-            React.createElement(Game, { name: this.state.name }),
-            document.getElementById('game')
-        );
-    },
-    playAi: function () {
-        React.render(
-            React.createElement(Game, { name: this.state.name, ai: "Flippy" }),
-            document.getElementById('game')
-        );
-    },
-    join: function (id) {
-        React.render(
-            React.createElement(Game, { name: this.state.name, id: id }),
-            document.getElementById('game')
-        );
-    },
-    nameChanged: function () {
+import React from 'react';
+import Game from './Game.jsx'
+import Login from './Login.jsx'
+import LeaderBoard from './LeaderBoard.jsx'
+
+export default class Lobby extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            name: null,
+            games: []
+        }
+    }
+    
+    joinNew() {
+        //let g = React.createElement(Game, { name: this.state.name });
+        this.props.activate(<Game name={this.state.name}/>)
+    }
+    playAi() {
+        this.props.activate(<Game name={this.state.name} ai="Flippy"/>)
+    }
+    join(id) {
+        this.props.activate(<Game name={this.state.name} id={id}/>)
+    }
+    nameChanged() {
         var name = this.refs.name.getDOMNode().value;
         this.setState({ name });
-    },
-    render: function () {
+    }
+    render() {
         var comp = this;
         var games = this.state.games.map(function (g) {
             return <LobbyGame id={g.ID} players={g.Players}
@@ -35,25 +40,25 @@ var Lobby = React.createClass({
                         Fork me on GitHub
           </a>
                 </span>
-                <Login setName={this.setName} />
+                <Login setName={(n)=>this.setName(n)} />
                 <h2>Pao Lobby</h2>
-                <input type="text" ref="name" value={this.state.name} onChange={this.nameChanged} placeholder="Your Name" />
+                <input type="text" ref="name" value={this.state.name} onChange={(e)=>this.nameChanged(e)} placeholder="Your Name" />
                 <div className="lobby-current-games">
                     <h3>{gameCount} Current Game{gameCount == 1 ? "" : "s"}</h3>
                     <ul className="games">
                         {games}
                     </ul>
                 </div>
-                <div><button onClick={this.joinNew}>Join New Game</button></div>
-                <div><button onClick={this.playAi}>Play Flippy</button></div>
+                <div><button onClick={(e)=>this.joinNew(e)}>Join New Game</button></div>
+                <div><button onClick={(e)=>this.playAi(e)}>Play Flippy</button></div>
                 <LeaderBoard />
             </div>
         )
-    },
-    setName: function (name) {
+    }
+    setName(name) {
         this.setState({ name })
-    },
-    Reload: function () {
+    }
+    Reload() {
         var comp = this;
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
@@ -68,36 +73,29 @@ var Lobby = React.createClass({
         }
         xhr.open("GET", "/listGames", true);
         xhr.send();
-    },
-    componentDidMount: function () {
+    }
+    componentDidMount() {
         this.Reload();
-        setInterval(this.Reload, 10*1000);
-    },
-    getInitialState: function () {
-        return {
-            name: null,
-            games: []
-        };
-    },
-});
+        var comp = this;
+        this.reloader = setInterval(() => comp.Reload(), 10*1000);
+    }
+    componentWillUnmount() {
+        clearInterval(this.reloader)
+    }
 
-var LobbyGame = React.createClass({
-    render: function () {
+}
+
+class LobbyGame extends React.Component {
+    render() {
         var playerList = this.props.players.map(function (player) {
             return (<li className="player">{player}</li>);
         });
         return (
-            <li className="lobby-game" onClick={this.props.onClick}>
+            <li className="lobby-game" onClick={(e) => this.props.onClick(e)}>
                 <div className="banqi-square red-cannon" />
                 <p>Current Players:</p>
                 <ul>{playerList}</ul>
             </li>);
-    },
-});
+    }
+}
 
-setTimeout(function () {
-    React.render(
-        React.createElement(Lobby, null),
-        document.getElementById('lobby')
-    );
-}, 1);

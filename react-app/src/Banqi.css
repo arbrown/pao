@@ -61,7 +61,7 @@ td.banqi-square.selected{
 }
 
 .game-state-banner div.banners h3,h2 {
-  margin:5px
+  margin:5px;
   vertical-align:middle;
   text-align: center;
 }
@@ -98,7 +98,7 @@ html:before {
   height: 100%;
   z-index: -1;
   opacity: 0.2;
-  background-image: url('/images/red-cannon.svg');
+  background-image: url("images/red-cannon.svg");
   background-repeat: no-repeat;
   background-size: cover;
   background-position:fixed;
@@ -165,49 +165,49 @@ html:before {
 }
 
 .banqi-square.red-king{
-  background-image: url("/images/red-king.svg")
+  background-image: url("images/red-king.svg")
 }
 .banqi-square.red-guard{
-  background-image: url("/images/red-guard.svg")
+  background-image: url("images/red-guard.svg")
 }
 .banqi-square.red-elephant{
-  background-image: url("/images/red-elephant.svg")
+  background-image: url("images/red-elephant.svg")
 }
 .banqi-square.red-cart{
-  background-image: url("/images/red-cart.svg")
+  background-image: url("images/red-cart.svg")
 }
 .banqi-square.red-horse{
-  background-image: url("/images/red-horse.svg")
+  background-image: url("images/red-horse.svg")
 }
 .banqi-square.red-pawn{
-  background-image: url("/images/red-pawn.svg")
+  background-image: url("images/red-pawn.svg")
 }
 .banqi-square.black-king{
-  background-image: url("/images/black-king.svg")
+  background-image: url("images/black-king.svg")
 }
 .banqi-square.black-guard{
-  background-image: url("/images/black-guard.svg")
+  background-image: url("images/black-guard.svg")
 }
 .banqi-square.black-elephant{
-  background-image: url("/images/black-elephant.svg")
+  background-image: url("images/black-elephant.svg")
 }
 .banqi-square.black-cart{
-  background-image: url("/images/black-cart.svg")
+  background-image: url("images/black-cart.svg")
 }
 .banqi-square.black-horse{
-  background-image: url("/images/black-horse.svg")
+  background-image: url("images/black-horse.svg")
 }
 .banqi-square.black-pawn{
-  background-image: url("/images/black-pawn.svg")
+  background-image: url("images/black-pawn.svg")
 }
 .banqi-square.unflipped-piece{
-  background-image: url("/images/unflipped-piece.svg")
+  background-image: url("images/unflipped-piece.svg")
 }
 .banqi-square.red-cannon{
-  background-image: url("/images/red-cannon.svg")
+  background-image: url("images/red-cannon.svg")
 }
 .banqi-square.black-cannon{
-  background-image: url("/images/black-cannon.svg")
+  background-image: url("images/black-cannon.svg")
 }
 
 button.reset-button {

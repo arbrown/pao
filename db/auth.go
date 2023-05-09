@@ -103,8 +103,10 @@ func (a *Auth) GetUser(rw http.ResponseWriter, req *http.Request) *httpauth.User
 func (a *Auth) Cu(rw http.ResponseWriter, req *http.Request) {
 	user, err := a.aaa.CurrentUser(rw, req)
 	if err != nil {
+		fmt.Printf("Error reading user: %+v\n", err)
 		return
 	}
+	fmt.Printf("User [%s] asks 'who am i?' (/cu)\n", user.Username)
 	if user.Username != "" {
 		rw.Write([]byte(user.Username))
 		return

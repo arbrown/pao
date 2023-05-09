@@ -1,11 +1,14 @@
-var Square = React.createClass({
-  handleClick: function(e){
+import React from 'react';
+import { NotationToColor, NotationToCss } from './Utils.js' 
+
+class Square extends React.Component {
+  handleClick(e){
     var f = this.props.handleClick;
     var rank = this.props.rank;
     var file = this.props.file;
     !f||f({rank,file});
-  },
-  render: function() {
+  }
+  render() {
     var classes = [];
     var files = 'ABCDEFGH';
     var ranks = '1234';
@@ -22,43 +25,51 @@ var Square = React.createClass({
     if (type){
       classes.push(type);
     }
-    classString = classes.reduce(function(p, c) { return p + " " + c});
+    var classString = classes.reduce(function(p, c) { return p + " " + c});
     return(
-    <td className={classString} onClick={this.handleClick} title={coord + " " + type}>
+    <td className={classString} onClick={(e) => this.handleClick(e)} title={coord + " " + type}>
       {this.props.children}
     </td>);
-  },
-});
+  }
+}
 
-var RowHeader = React.createClass({
-  render: function() {
+class RowHeader extends React.Component {
+  render() {
     var rank = this.props.rank;
     return(
     <th scope="row">
       {"1234"[rank]}
     </th>);
-  },
-});
+  }
+}
 
-var ColumnHeader = React.createClass({
-  render: function() {
+class ColumnHeader extends React.Component {
+  render() {
     var file = this.props.file;
     return(
     <th scope="col">
       {"ABCDEFGH"[file]}
     </th>);
-  },
-});
+  }
+}
 
-var Board = React.createClass({
-  flipPiece: function(square){
+export default class Board extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      selected : null,
+      lastMove: null
+    }
+  }
+  
+  flipPiece(square){
     var files = 'ABCDEFGH';
     var ranks = '1234';
     var move = '?'+files.charAt(square.file)+ ranks.charAt(square.rank);
     console.log("Tried to flip piece at: " + square.rank+","+square.file);
     !this.props.sendMove || this.props.sendMove(move)
-  },
-  move: function(attacker, target){
+  }
+  move(attacker, target){
     var files = 'ABCDEFGH';
     var ranks = '1234';
     console.log("Tried to attack/move from: " + attacker.rank+"," +attacker.file
@@ -66,8 +77,8 @@ var Board = React.createClass({
     var move =  files.charAt(attacker.file) + ranks.charAt(attacker.rank) + '>' +
                 files.charAt(target.file) + ranks.charAt(target.rank);
     !this.props.sendMove || this.props.sendMove(move);
-  },
-  handleClick: function(clicked){
+  }
+  handleClick(clicked){
     var s = this.state.selected;
     var sp = s ? this.props.board[s.rank][s.file] : null;
     var cp = this.props.board[clicked.rank][clicked.file];
@@ -85,8 +96,8 @@ var Board = React.createClass({
         this.setState({ selected: clicked });
       }
     }
-  },
-  render: function(){
+  }
+  render(){
     var current = this.state.selected;
     var lastMove = this.props.lastMove
     var comp = this;
@@ -100,7 +111,7 @@ var Board = React.createClass({
       var squares = row.map(function(square, file){
         return (
           <Square
-            handleClick={comp.handleClick}
+            handleClick={(e)=>comp.handleClick(e)}
             piece={square}
             selected={current && current.rank == rank && current.file == file}
             lastMove = {lastMove}
@@ -119,50 +130,9 @@ var Board = React.createClass({
         {rowElements}
       </table>
     )
-  },
-  getInitialState: function() {
-    return {
-      selected : null,
-      lastMove: null
-    };
-  },
-  IOwn : function(square){
+  }
+  IOwn(square){
     var piece = this.props.board[square.rank][square.file];
     return NotationToColor[piece] == this.props.myColor;
   }
-});
-
-NotationToColor = {
-  'K' : 'black',
-  'G' : 'black',
-  'E' : 'black',
-  'C' : 'black',
-  'H' : 'black',
-  'P' : 'black',
-  'Q' : 'black',
-  'k' : 'red',
-  'g' : 'red',
-  'e' : 'red',
-  'c' : 'red',
-  'h' : 'red',
-  'p' : 'red',
-  'q' : 'red',
-};
-
-NotationToCss = {
-  'K' : 'black-king',
-  'G' : 'black-guard',
-  'E' : 'black-elephant',
-  'C' : 'black-cart',
-  'H' : 'black-horse',
-  'P' : 'black-pawn',
-  'Q' : 'black-cannon',
-  'k' : 'red-king',
-  'g' : 'red-guard',
-  'e' : 'red-elephant',
-  'c' : 'red-cart',
-  'h' : 'red-horse',
-  'p' : 'red-pawn',
-  'q' : 'red-cannon',
-  '?' : 'unflipped-piece'
-};
+}

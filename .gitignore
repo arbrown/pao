@@ -24,3 +24,5 @@ _testmain.go
 
 conf/*.json
 *.s3db
+
+react-app/node_modules

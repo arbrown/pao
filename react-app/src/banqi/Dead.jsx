@@ -1,5 +1,16 @@
-var DeadPieces = React.createClass({
-  render : function(){
+import React from 'react';
+import { StrengthCompareD, NotationToColor, NotationToCss } from './Utils.js';
+
+export default class DeadPieces extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      sort : "strength",
+      lastDead: ""
+    }
+  }
+  
+  render(){
     var redDead = [];
     var blackDead = [];
     var chances = this.computeRemainingChances(this.props.dead, this.props.board);
@@ -25,14 +36,8 @@ var DeadPieces = React.createClass({
         <div className="black-dead">{blackPieces}</div>
       </div>
     );
-  },
-  getInitialState: function() {
-    return {
-      sort : "strength",
-      lastDead: ""
-    };
-  },
-  deadPiece: function(piece, state, lastMove, chances) {
+  }
+  deadPiece(piece, state, lastMove, chances) {
     // `state` is 'dead', 'live', or 'unborn'
     var classes = []
     classes.push('banqi-square');
@@ -48,8 +53,8 @@ var DeadPieces = React.createClass({
         title += " " + chances[type] + "%";
     }
     return <div className={classString} title={title} />
-  },
-  deadPieces: function(all, dead, live, chances) {
+  }
+  deadPieces(all, dead, live, chances) {
     var lastDead = this.props.lastDead;
     var self = this;
     dead = dead.reduce(function(p, c) { return p + " " + c}, '');
@@ -70,8 +75,8 @@ var DeadPieces = React.createClass({
       }
       return self.deadPiece(piece, state, lastMove, chances);
     })
-  },
-  collectKnownPieces: function(board) {
+  }
+  collectKnownPieces(board) {
     var knownPieces = [];
     for (var rank=0; rank < 4; rank++) {
       for (var file=0; file < 8; file++) {
@@ -82,8 +87,8 @@ var DeadPieces = React.createClass({
       }
     }
     return knownPieces;
-  },
-    computeRemainingChances : function(dead, board) {
+  }
+    computeRemainingChances(dead, board) {
       var remaining = 'kggeecchhpppppqq' + 'KGGEECCHHPPPPPQQ';
       var chances = {};
       dead = dead.concat(this.collectKnownPieces(board));
@@ -111,22 +116,4 @@ var DeadPieces = React.createClass({
       }
       return chances;
   }
-});
-
-PieceStrength = ["Q","P","H","C","E","G","K"]
-StrengthCompareD = function(a,b){
-  return StrengthCompare(a,b,true)
-};
-StrengthCompare = function(a, b, desc){
-  a = a.toUpperCase();
-  b = b.toUpperCase();
-  aStrength = PieceStrength.indexOf(a);
-  bStrength = PieceStrength.indexOf(b);
-  if (!(aStrength > -1 && bStrength > -1)){
-    return 0;
-  }
-  if (desc){
-    return bStrength - aStrength;
-  }
-  return aStrength - bStrength;
-};
+}
