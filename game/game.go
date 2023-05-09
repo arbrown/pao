@@ -58,12 +58,12 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool) bool {
 	if g.CurrentPlayer == nil {
 		g.CurrentPlayer = player.NewPlayer(conn, name, user, false, bot)
-		fmt.Println("Joined as #1")
+		fmt.Printf("User [%s] Joined as #1\n", user.Username)
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
 		return true
 	} else if g.NextPlayer == nil {
-		fmt.Println("Trying to join as #2")
+		fmt.Printf("User [%s] Trying to join as #2\n", user.Username)
 		g.NextPlayer = player.NewPlayer(conn, name, user, false, bot)
 		go g.listenPlayer(g.NextPlayer)
 		return true
@@ -74,6 +74,7 @@ func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData
 
 // JoinKibitz will create a new 'player' and add to the group of kibitzers in a game
 func (g *Game) JoinKibitz(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
+	fmt.Printf("User [%s] Trying to join as kibitzer\n", user.Username)
 	kibitzer := player.NewPlayer(conn, name, user, true, false)
 	g.kibitzers = append(g.kibitzers, kibitzer)
 	go g.listenPlayer(kibitzer)

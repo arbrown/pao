@@ -52,6 +52,9 @@ func main() {
 	httpMux.HandleFunc("/cu", a.Cu)
 	httpMux.HandleFunc("/leaderBoard", paoDb.GetLeaderBoard)
 
+	// Serve the UI here
+	httpMux.Handle("/", http.FileServer(http.Dir("./react-app/build/")))
+
 	go func() {
 		for {
 			select {
@@ -70,7 +73,7 @@ func main() {
 
 	bind := fmt.Sprintf("%s:%s", host, port)
 
-	httpMux.Handle("/", http.FileServer(http.Dir("./client/")))
+	fmt.Printf("Listening on %s\n", bind)
 	err = http.ListenAndServe(bind, httpMux)
 	if err != nil {
 		panic("ListenAndServe:" + err.Error())
