@@ -38,7 +38,7 @@ steps:
           args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','run', 'build']
 
         - name: 'debian'
-          args: ['cp', '-R', '${_SRC_DIRECTORY}/react-app/build', 'deploy/react-app/build']
+          args: ['cp', '-R', '${_SRC_DIRECTORY}/react-app/build', 'deploy/react-app']
         
         - name: 'debian'
           args: ['tar', '-czf', '${_DEPLOY_FILENAME}', '-C', './deploy', '.']
