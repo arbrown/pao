@@ -36,7 +36,8 @@ export default class Game extends React.Component {
                     myTurn={this.state.myTurn}
                     sendMove={this.sendMove.bind(this)}
                     myColor={this.state.myColor}
-                    lastMove={this.state.lastMove} />
+                    lastMove={this.state.lastMove}
+                    firstMove={this.state.firstMove} />
                 <DeadPieces dead={this.state.dead}
                     lastDead={this.state.lastDead}
                     board={this.state.board} />
@@ -147,7 +148,8 @@ export default class Game extends React.Component {
             lastDead: boardCommand.LastDead,
             whoseTurn: boardCommand.WhoseTurn,
             turnColor: boardCommand.TurnColor,
-            numPlayers: boardCommand.NumPlayers
+            numPlayers: boardCommand.NumPlayers,
+            firstMove: boardCommand.FirstMove,
         })
     }
     handleChat(chatCommand) {

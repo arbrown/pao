@@ -36,6 +36,7 @@ type BoardCommand struct {
 	WhoseTurn  string
 	TurnColor  string
 	NumPlayers int
+	FirstMove  bool
 }
 
 // ColorCommand is a command indicating to a client which color is theirs
