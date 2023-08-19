@@ -262,7 +262,9 @@ func (g *Game) undoMove() {
 			g.gameState.RemainingPieces = append(g.gameState.RemainingPieces, move.targetPiece)
 		}
 	}
+
 	g.moveHistory = g.moveHistory[:l-1]
+	g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
 	g.broadcastBoard()
 	g.redUndo, g.blackUndo = false, false
 
