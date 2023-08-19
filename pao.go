@@ -112,7 +112,9 @@ func (lgh listGamesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if game.NextPlayer != nil {
 			players = append(players, game.NextPlayer.Name)
 		}
-		resp = append(resp, gameResponse{ID: id, Players: players})
+		if len(players) != 0 {
+			resp = append(resp, gameResponse{ID: id, Players: players})
+		}
 	}
 	js, err := json.Marshal(resp)
 	if err != nil {
