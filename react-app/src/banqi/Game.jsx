@@ -192,7 +192,7 @@ class GameState extends React.Component {
                 <div className="headers">
                     {headers}
                 </div>
-                {cannon}
+                {this.props.myColor == null ? <div className="banner-piece banqi-square red-cannon"></div> : cannon}
             </div>
         )
     }
