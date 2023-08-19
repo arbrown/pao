@@ -6,8 +6,10 @@ import (
 )
 
 type move struct {
-	isFlip         bool
-	source, target string // in ban qi notation
+	isFlip                   bool
+	source, target           string // coordinates in ban qi notation
+	sourcePiece, targetPiece string // Relevant Pieces in ban qi notation
+	// Added piece notation kludge after the fact for undo functionality
 }
 
 func parseMove(s string) (m *move, e error) {
@@ -19,6 +21,7 @@ func parseMove(s string) (m *move, e error) {
 	} else if len(s) < 5 {
 		return nil, errors.New("Command string not long enough")
 	}
+	fmt.Printf("Move: %+v", s)
 	return &move{isFlip: false, source: s[0:2], target: s[3:5]}, nil
 }
 

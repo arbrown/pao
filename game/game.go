@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/apexskier/httpauth"
@@ -23,6 +24,7 @@ type Game struct {
 	ID                        string
 	gameState                 gamestate.Gamestate
 	black, red                *player.Player
+	blackUndo, redUndo        bool
 	lastMove                  []string
 	lastDead                  string
 	active                    bool
@@ -34,6 +36,7 @@ type Game struct {
 	gameOverChan              chan bool
 	removeGameChan            chan *Game
 	kibitzers                 []*player.Player
+	moveHistory               []*move
 }
 
 var upgrader = &websocket.Upgrader{
@@ -58,12 +61,12 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool) bool {
 	if g.CurrentPlayer == nil {
 		g.CurrentPlayer = player.NewPlayer(conn, name, user, false, bot)
-		fmt.Printf("User [%s] Joined as #1\n", user.Username)
+		fmt.Printf("User [%s] Joined as #1\n", g.CurrentPlayer.Name)
 		go g.listenPlayer(g.CurrentPlayer)
 		go g.startGame()
 		return true
 	} else if g.NextPlayer == nil {
-		fmt.Printf("User [%s] Trying to join as #2\n", user.Username)
+		fmt.Printf("User [%s] Trying to join as #2\n", name)
 		g.NextPlayer = player.NewPlayer(conn, name, user, false, bot)
 		go g.listenPlayer(g.NextPlayer)
 		return true
@@ -74,7 +77,7 @@ func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData
 
 // JoinKibitz will create a new 'player' and add to the group of kibitzers in a game
 func (g *Game) JoinKibitz(conn *websocket.Conn, name string, user *httpauth.UserData) bool {
-	fmt.Printf("User [%s] Trying to join as kibitzer\n", user.Username)
+	fmt.Printf("User [%s] Trying to join as kibitzer\n", name)
 	kibitzer := player.NewPlayer(conn, name, user, true, false)
 	g.kibitzers = append(g.kibitzers, kibitzer)
 	go g.listenPlayer(kibitzer)
@@ -168,6 +171,10 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 	// }
 	switch c.C.Action {
 	case "chat":
+		msg, result := c.C.Argument, ""
+		if strings.HasPrefix(msg, "/") {
+			result = g.handleSlashCommand(c)
+		}
 		color := "black"
 		if c.P == g.red {
 			color = "red"
@@ -175,7 +182,11 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 		if c.P.Kibitzer == true {
 			color = "teal"
 		}
-		g.broadcastChat(c.P, c.C.Argument, color)
+
+		g.broadcastChat(c.P, msg, color)
+		if result != "" {
+			g.broadcastChat(c.P, result, color)
+		}
 	case "board?":
 		g.broadcastBoard()
 	case "move":
@@ -198,6 +209,63 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 	case "resign":
 		g.resign(c.P)
 	}
+}
+
+func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
+	if strings.EqualFold(c.C.Argument, "/undo") {
+		return g.proposeUndo(c.P)
+	}
+	return ""
+}
+
+func (g *Game) proposeUndo(p *player.Player) string {
+	playerUndo, opponentUndo := false, false
+	if p.Kibitzer {
+		return fmt.Sprintf("*%q proposes an undo*", p.Name)
+	}
+	if p == g.red {
+		g.redUndo = !g.redUndo
+		playerUndo = g.redUndo
+		opponentUndo = g.blackUndo
+	} else if p == g.black {
+		g.blackUndo = !g.blackUndo
+		playerUndo = g.blackUndo
+		opponentUndo = g.redUndo
+	}
+
+	if playerUndo && opponentUndo {
+		g.undoMove()
+		return fmt.Sprintf("*%q accepts the undo*", p.Name)
+	} else if playerUndo {
+		return fmt.Sprintf("*%q proposes an undo*", p.Name)
+	} else {
+		return fmt.Sprintf("*%q no longer wishes to undo*", p.Name)
+	}
+}
+
+func (g *Game) undoMove() {
+	l := len(g.moveHistory)
+	if l == 0 {
+		return
+	}
+	move := g.moveHistory[l-1]
+	fmt.Printf("Trying to undo move: %+v\n", move)
+	srcFile, srcRank, tgtFile, tgtRank := move.getCoords()
+	if move.isFlip {
+		g.gameState.RemainingPieces = append(g.gameState.RemainingPieces, move.targetPiece)
+		// Swapping order of file/rank here is a bit of a footgun :/
+		g.gameState.KnownBoard[srcRank][srcFile] = "?"
+	} else {
+		g.gameState.KnownBoard[srcRank][srcFile] = move.sourcePiece
+		g.gameState.KnownBoard[tgtRank][tgtFile] = move.targetPiece
+		if move.targetPiece != "" {
+			g.gameState.RemainingPieces = append(g.gameState.RemainingPieces, move.targetPiece)
+		}
+	}
+	g.moveHistory = g.moveHistory[:l-1]
+	g.broadcastBoard()
+	g.redUndo, g.blackUndo = false, false
+
 }
 
 func (g *Game) resign(p *player.Player) {
@@ -472,13 +540,18 @@ func (g *Game) tryMove(pc command.PlayerCommand) bool {
 
 	// now actually do the move
 	if move.isFlip {
-		if ok := g.flip(move); !ok {
+		var piece string
+		ok, piece := g.flip(move)
+		if !ok {
 			return false
 		}
+		move.sourcePiece = piece
+		move.targetPiece = piece
+
 		g.lastMove = nil
 		g.lastMove = append(g.lastMove, move.source)
 	} else {
-		ok, deadPiece := g.performMove(move)
+		ok, livePiece, deadPiece := g.performMove(move)
 		if !ok {
 			return false
 		}
@@ -487,19 +560,21 @@ func (g *Game) tryMove(pc command.PlayerCommand) bool {
 		if deadPiece != "" {
 			g.lastDead = deadPiece
 		}
+		move.sourcePiece, move.targetPiece = livePiece, deadPiece
 	}
 	if move.target != "" {
 		g.lastMove = append(g.lastMove, move.target)
 	}
 
+	g.moveHistory = append(g.moveHistory, move)
 	return true
 }
 
-func (g *Game) flip(m *move) bool {
+func (g *Game) flip(m *move) (bool, string) {
 	srcFile, srcRank, _, _ := m.getCoords()
 	if g.gameState.KnownBoard[srcRank][srcFile] != "?" {
 		//can't flip that!
-		return false
+		return false, ""
 	}
 	// get a random piece from the remaining pieces
 	index := rand.Intn(len(g.gameState.RemainingPieces))
@@ -519,7 +594,7 @@ func (g *Game) flip(m *move) bool {
 		g.broadcastColors()
 	}
 	g.gameState.RemainingPieces = append(g.gameState.RemainingPieces[:index], g.gameState.RemainingPieces[index+1:]...)
-	return true
+	return true, piece
 }
 
 func (g *Game) validateMove(m *move) bool {
@@ -577,10 +652,10 @@ func (g *Game) validateMove(m *move) bool {
 	}
 	return true
 }
-func (g *Game) performMove(m *move) (bool, string) {
+func (g *Game) performMove(m *move) (bool, string, string) {
 
 	if valid := g.validateMove(m); !valid {
-		return valid, ""
+		return valid, "", ""
 	}
 	srcFile, srcRank, tgtFile, tgtRank := m.getCoords()
 	srcPiece, tgtPiece := g.gameState.KnownBoard[srcRank][srcFile], g.gameState.KnownBoard[tgtRank][tgtFile]
@@ -593,7 +668,7 @@ func (g *Game) performMove(m *move) (bool, string) {
 		g.lastDead = tgtPiece
 	}
 
-	return true, tgtPiece
+	return true, srcPiece, tgtPiece
 }
 
 func (g *Game) checkVictory() (victor *player.Player, won bool) {

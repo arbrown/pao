@@ -6,7 +6,7 @@
       "src": "red-cannon.svg",
       "type": "image/svg+xml",
       "sizes": "192x192"
-    },
+    }
   ],
   "start_url": ".",
   "display": "standalone",
