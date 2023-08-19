@@ -31,10 +31,14 @@ steps:
 
         - name: 'node'
           entrypoint: 'npm'
+          args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','install']
+
+        - name: 'node'
+          entrypoint: 'npm'
           args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','run', 'build']
 
         - name: 'debian'
-          args: ['cp', '-R', './react-app/build', 'deploy/react-app/build']
+          args: ['cp', '-R', '${_SRC_DIRECTORY}/react-app/build', 'deploy/react-app/build']
         
         - name: 'debian'
           args: ['tar', '-czf', '${_DEPLOY_FILENAME}', '-C', './deploy', '.']
