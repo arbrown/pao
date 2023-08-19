@@ -3,7 +3,7 @@ steps:
           args: ['go', 'version']
 
         - name: 'debian'
-          args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf']
+          args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf', 'deploy/react-app/build']
 
         - name: 'registry.hub.docker.com/library/golang'
           env: [
