@@ -50,7 +50,6 @@ export default class Lobby extends React.Component {
                     </ul>
                 </div>
                 <div><button onClick={(e) => this.joinNew(e)}>Join New Game</button></div>
-                <div><button onClick={(e) => this.playAi(e)}>Play Flippy</button></div>
                 <LeaderBoard />
                 <h4>Now with more react!</h4>
             </div>
