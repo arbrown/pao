@@ -13,12 +13,8 @@ export default class Lobby extends React.Component {
     }
 
     joinNew() {
-        //let g = React.createElement(Game, { name: this.state.name });
         this.props.activate(<Game name={this.state.name} />)
     }
-    // playAi() {
-    // this.props.activate(<Game name={this.state.name} ai="Flippy"/>)
-    // }
     join(id) {
         this.props.activate(<Game name={this.state.name} id={id} />)
     }
@@ -51,7 +47,6 @@ export default class Lobby extends React.Component {
                 </div>
                 <div><button onClick={(e) => this.joinNew(e)}>Join New Game</button></div>
                 <LeaderBoard />
-                <h4>Now with more react!</h4>
             </div>
         )
     }
