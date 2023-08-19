@@ -31,7 +31,14 @@ steps:
 
         - name: 'debian'
           args: ['cp', '-R', './client', 'deploy/client']
-          
+        
+        - name: 'node'
+          entrypoint: 'npm'
+          args: ['run', 'build']
+
+        - name: 'debian'
+          args: ['cp', '-R', './react-app/build', 'deploy/react-app/build']
+        
         - name: 'debian'
           args: ['tar', '-czf', '${_DEPLOY_FILENAME}', '-C', './deploy', '.']
         - name: 'debian'
