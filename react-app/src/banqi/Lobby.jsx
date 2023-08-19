@@ -11,16 +11,16 @@ export default class Lobby extends React.Component {
             games: []
         }
     }
-    
+
     joinNew() {
         //let g = React.createElement(Game, { name: this.state.name });
-        this.props.activate(<Game name={this.state.name}/>)
+        this.props.activate(<Game name={this.state.name} />)
     }
-    playAi() {
-        this.props.activate(<Game name={this.state.name} ai="Flippy"/>)
-    }
+    // playAi() {
+    // this.props.activate(<Game name={this.state.name} ai="Flippy"/>)
+    // }
     join(id) {
-        this.props.activate(<Game name={this.state.name} id={id}/>)
+        this.props.activate(<Game name={this.state.name} id={id} />)
     }
     nameChanged() {
         var name = this.refs.name.getDOMNode().value;
@@ -38,20 +38,21 @@ export default class Lobby extends React.Component {
                 <span id="forkongithub">
                     <a href="https://github.com/arbrown/pao">
                         Fork me on GitHub
-          </a>
+                    </a>
                 </span>
-                <Login setName={(n)=>this.setName(n)} />
+                <Login setName={(n) => this.setName(n)} />
                 <h2>Pao Lobby</h2>
-                <input type="text" ref="name" value={this.state.name} onChange={(e)=>this.nameChanged(e)} placeholder="Your Name" />
+                <input type="text" ref="name" value={this.state.name} onChange={(e) => this.nameChanged(e)} placeholder="Your Name" />
                 <div className="lobby-current-games">
                     <h3>{gameCount} Current Game{gameCount == 1 ? "" : "s"}</h3>
                     <ul className="games">
                         {games}
                     </ul>
                 </div>
-                <div><button onClick={(e)=>this.joinNew(e)}>Join New Game</button></div>
-                <div><button onClick={(e)=>this.playAi(e)}>Play Flippy</button></div>
+                <div><button onClick={(e) => this.joinNew(e)}>Join New Game</button></div>
+                <div><button onClick={(e) => this.playAi(e)}>Play Flippy</button></div>
                 <LeaderBoard />
+                <h4>Now with more react!</h4>
             </div>
         )
     }
@@ -77,7 +78,7 @@ export default class Lobby extends React.Component {
     componentDidMount() {
         this.Reload();
         var comp = this;
-        this.reloader = setInterval(() => comp.Reload(), 10*1000);
+        this.reloader = setInterval(() => comp.Reload(), 10 * 1000);
     }
     componentWillUnmount() {
         clearInterval(this.reloader)
