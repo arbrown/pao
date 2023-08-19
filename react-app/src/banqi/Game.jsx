@@ -1,5 +1,27 @@
-var Game = React.createClass({
-    render: function () {
+import React from 'react';
+import Board from './Board.jsx'
+import DeadPieces from './Dead.jsx'
+import Chat from './Chat.jsx'
+
+export default class Game extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            chats: [],
+            board:
+                [['.', '.', '.', '.', '.', '.', '.', '.',],
+                ['.', '.', '.', '.', '.', '.', '.', '.',],
+                ['.', '.', '.', '.', '.', '.', '.', '.',],
+                ['.', '.', '.', '.', '.', '.', '.', '.',]],
+            myTurn: false,
+            myColor: null,
+            dead: [],
+            numPlayers: 0,
+            whoseTurn: null,
+            turnColor: null
+        };
+    }
+    render() {
         return (
             <div>
                 <GameState myTurn={this.state.myTurn}
@@ -12,43 +34,42 @@ var Game = React.createClass({
                 <Board
                     board={this.state.board}
                     myTurn={this.state.myTurn}
-                    sendMove={this.sendMove}
+                    sendMove={this.sendMove.bind(this)}
                     myColor={this.state.myColor}
                     lastMove={this.state.lastMove} />
                 <DeadPieces dead={this.state.dead}
                     lastDead={this.state.lastDead}
                     board={this.state.board} />
-                <Chat submitChat={this.submitChat} chats={this.state.chats} />
+                <Chat submitChat={this.submitChat.bind(this)} chats={this.state.chats} />
                 <button className="goBackButton"><a href="/">Go back to lobby</a></button>
-                {!this.state.gameOver ? <button className="resignButton" onClick={this.resign}>Resign</button> : null}
+                {!this.state.gameOver ? <button className="resignButton" onClick={(e) => this.resign(e)}>Resign</button> : null}
             </div>
         )
-    },
-    resign: function () {
+    }
+    resign() {
         if (this.ws) {
             var command = { Action: "resign" };
             this.ws.send(JSON.stringify(command));
         }
-    },
-    sendMove: function (move) {
+    }
+    sendMove(move) {
         // sends a ban qi formatted move
         // game will update us if it was valid
         if (this.ws) {
             var command = { Action: "move", Argument: move };
             this.ws.send(JSON.stringify(command));
         }
-    },
-    submitChat: function (text) {
+    }
+    submitChat(text) {
         if (this.ws) {
             var chat = { Action: "chat", Argument: text };
             this.ws.send(JSON.stringify(chat));
         }
-    },
-    componentDidMount: function () {
+    }
+    componentDidMount() {
         this.connect();
-        React.unmountComponentAtNode(document.getElementById('lobby'));
-    },
-    connect: function () {
+    }
+    connect() {
         if (this.props.ai) {
             var xhttp = new XMLHttpRequest();
             var game = this;
@@ -66,8 +87,8 @@ var Game = React.createClass({
             var params = { name: this.props.name, id: this.props.id }
             this.tryConnect(document.location.port, params)
         }
-    },
-    tryConnect: function (port, params) {
+    }
+    tryConnect(port, params) {
 
         var addr = "ws://" +
             document.location.hostname
@@ -84,17 +105,17 @@ var Game = React.createClass({
         var comp = this;
         ws.onopen = function () {
             comp.ws = ws;
-            this.onmessage = comp.handleMessage
+            this.onmessage = (p1) => comp.handleMessage(p1)
             comp.askForBoard()
         }
-    },
-    askForBoard: function () {
+    }
+    askForBoard() {
         if (this.ws) {
             var command = { Action: 'board?' };
             this.ws.send(JSON.stringify(command));
         }
-    },
-    handleMessage: function (wsMsg) {
+    }
+    handleMessage(wsMsg) {
         if (!wsMsg || !wsMsg.data) {
             return;
         }
@@ -116,8 +137,8 @@ var Game = React.createClass({
                 console.log("I don't know what to do with this...");
                 console.log(data);
         }
-    },
-    handleBoard: function (boardCommand) {
+    }
+    handleBoard(boardCommand) {
         this.setState({
             board: boardCommand.Board,
             myTurn: boardCommand.YourTurn,
@@ -128,39 +149,24 @@ var Game = React.createClass({
             turnColor: boardCommand.TurnColor,
             numPlayers: boardCommand.NumPlayers
         })
-    },
-    handleChat: function (chatCommand) {
+    }
+    handleChat(chatCommand) {
         var chats = this.state.chats;
         chats.push({ player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color, auth: chatCommand.Auth })
         this.setState({ chats });
-    },
-    handleColor: function (colorCommand) {
+    }
+    handleColor(colorCommand) {
         var myColor = colorCommand.Color;
         this.setState({ myColor })
-    },
-    handleGameOver: function (gameOverCommand) {
+    }
+    handleGameOver(gameOverCommand) {
         this.setState({ myTurn: false, gameOver: true, won: gameOverCommand.YouWin });
-    },
-    getInitialState: function () {
-        return {
-            chats: [],
-            board:
-                [['.', '.', '.', '.', '.', '.', '.', '.',],
-                ['.', '.', '.', '.', '.', '.', '.', '.',],
-                ['.', '.', '.', '.', '.', '.', '.', '.',],
-                ['.', '.', '.', '.', '.', '.', '.', '.',]],
-            myTurn: false,
-            myColor: null,
-            dead: [],
-            numPlayers: 0,
-            whoseTurn: null,
-            turnColor: null
-        };
-    },
-});
+    }
 
-var GameState = React.createClass({
-    render: function () {
+}
+
+class GameState extends React.Component {
+    render() {
         var headers = []
         if (this.props.gameOver) {
             headers.push(<h2 className="game-info-header">Game Over</h2>);
@@ -190,4 +196,4 @@ var GameState = React.createClass({
             </div>
         )
     }
-});
+}

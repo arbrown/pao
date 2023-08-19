@@ -1,0 +1,15 @@
+{
+  "short_name": "Pao",
+  "name": "Pao - A Banqi Server",
+  "icons": [
+    {
+      "src": "red-cannon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

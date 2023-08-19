@@ -1,5 +1,7 @@
-var ChatMessage = React.createClass({
-  render: function(){
+import React from 'react';
+
+class ChatMessage extends React.Component {
+  render(){
     var css = "chat-message " + (this.props.auth ? "auth" : "");
     return(
       <div className={css}>
@@ -9,46 +11,47 @@ var ChatMessage = React.createClass({
       </div>
     );
   }
-});
+}
 
-var Chat = React.createClass({
-  submitChat: function(e){
+export default class Chat extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+    }
+  }
+  
+  submitChat(e){
     e.preventDefault();
     var message = this.state.chatMessage;
     console.log("User sent chat message: " + this.state.chatMessage);
     !this.props.submitChat || this.props.submitChat(message);
-    this.setState({chatMessage: null})
-  },
-  changeMessage: function(){
-    var message = this.refs.chatInput.getDOMNode().value;
+    this.setState({chatMessage: ""})
+  }
+  changeMessage(e){
+    var message = e.target.value
     this.setState({chatMessage: message});
-  },
-  render: function() {
+  }
+  render() {
     var messages = this.props.chats.map(function(message, i){
       return (<ChatMessage key={i} player={message.player} text={message.text} color={message.color} auth={message.auth}/>);
     });
     return(
       <div className="chat">
-        <div className="chat-messages" ref="chatMessages">
+        <div className="chat-messages" ref={(el) => {this.chatMessages = el}}>
           {messages}
         </div>
-        <form onSubmit={this.submitChat}>
+        <form onSubmit={(e) => this.submitChat(e)}>
           <input
             type="text"
-            ref="chatInput"
             value={this.state.chatMessage}
-            onChange={this.changeMessage}
+            onChange={(e) => this.changeMessage(e)}
             placeholder="Type a chat message"/>
         </form>
       </div>
     );
-  },
-  getInitialState: function() {
-    return {
-    };
-  },
-  componentDidUpdate: function(prevProps, prevState) {
-    var div = this.refs.chatMessages.getDOMNode();
+  }
+  componentDidUpdate(prevProps, prevState) {
+    var div = this.chatMessages;
     div.scrollTop = div.scrollHeight;
-  },
-})
+  }
+}

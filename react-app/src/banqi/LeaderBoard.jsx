@@ -1,5 +1,14 @@
-var LeaderBoard = React.createClass({
-  render: function() {
+import React from 'react';
+
+export default class LeaderBoard extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      leaders : [],
+    }
+  }
+  
+  render() {
     var leaders = this.state.leaders.map(function(l){
       return(
         <tr>
@@ -21,8 +30,8 @@ var LeaderBoard = React.createClass({
         </table>
       </div>
       );
-  },
-  componentDidMount: function() {
+  }
+  componentDidMount() {
     var comp = this;
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -33,10 +42,5 @@ var LeaderBoard = React.createClass({
     }
     xhr.open("GET", "/leaderBoard", true);
     xhr.send();
-  },
-  getInitialState: function() {
-    return {
-      leaders : []
-    };
-  },
-});
+  }
+}

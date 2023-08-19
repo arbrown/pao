@@ -3,7 +3,7 @@ steps:
           args: ['go', 'version']
 
         - name: 'debian'
-          args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf']
+          args: ['mkdir', '-p', 'deploy/etc/systemd/system/','deploy/usr/bin', 'deploy/conf', 'deploy/react-app/build']
 
         - name: 'registry.hub.docker.com/library/golang'
           env: [
@@ -29,9 +29,17 @@ steps:
         - name: 'debian'
           args: ['cp', 'conf/flippy.service', 'deploy/etc/systemd/system/']
 
+        - name: 'node'
+          entrypoint: 'npm'
+          args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','install']
+
+        - name: 'node'
+          entrypoint: 'npm'
+          args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','run', 'build']
+
         - name: 'debian'
-          args: ['cp', '-R', './client', 'deploy/client']
-          
+          args: ['cp', '-R', '${_SRC_DIRECTORY}/react-app/build', 'deploy/react-app']
+        
         - name: 'debian'
           args: ['tar', '-czf', '${_DEPLOY_FILENAME}', '-C', './deploy', '.']
         - name: 'debian'
