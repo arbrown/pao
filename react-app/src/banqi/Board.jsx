@@ -1,12 +1,12 @@
 import React from 'react';
-import { NotationToColor, NotationToCss } from './Utils.js' 
+import { NotationToColor, NotationToCss } from './Utils.js'
 
 class Square extends React.Component {
-  handleClick(e){
+  handleClick(e) {
     var f = this.props.handleClick;
     var rank = this.props.rank;
     var file = this.props.file;
-    !f||f({rank,file});
+    !f || f({ rank, file });
   }
   render() {
     var classes = [];
@@ -16,40 +16,40 @@ class Square extends React.Component {
     classes.push('banqi-square');
     classes.push('banqi-square-' + coord)
     if (this.props.lastMove && this.props.lastMove.indexOf(coord) != -1) {
-        classes.push('last-move')
+      classes.push('last-move')
     }
-    if (this.props.selected){
+    if (this.props.selected) {
       classes.push('selected')
     }
     var type = NotationToCss[this.props.piece];
-    if (type){
+    if (type) {
       classes.push(type);
     }
-    var classString = classes.reduce(function(p, c) { return p + " " + c});
-    return(
-    <td className={classString} onClick={(e) => this.handleClick(e)} title={coord + " " + type}>
-      {this.props.children}
-    </td>);
+    var classString = classes.reduce(function (p, c) { return p + " " + c });
+    return (
+      <td className={classString} onClick={(e) => this.handleClick(e)} title={coord + " " + type}>
+        {this.props.children}
+      </td>);
   }
 }
 
 class RowHeader extends React.Component {
   render() {
     var rank = this.props.rank;
-    return(
-    <th scope="row">
-      {"1234"[rank]}
-    </th>);
+    return (
+      <th scope="row">
+        {"1234"[rank]}
+      </th>);
   }
 }
 
 class ColumnHeader extends React.Component {
   render() {
     var file = this.props.file;
-    return(
-    <th scope="col">
-      {"ABCDEFGH"[file]}
-    </th>);
+    return (
+      <th scope="col">
+        {"ABCDEFGH"[file]}
+      </th>);
   }
 }
 
@@ -57,33 +57,33 @@ export default class Board extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      selected : null,
+      selected: null,
       lastMove: null
     }
   }
-  
-  flipPiece(square){
+
+  flipPiece(square) {
     var files = 'ABCDEFGH';
     var ranks = '1234';
-    var move = '?'+files.charAt(square.file)+ ranks.charAt(square.rank);
-    console.log("Tried to flip piece at: " + square.rank+","+square.file);
+    var move = '?' + files.charAt(square.file) + ranks.charAt(square.rank);
+    console.log("Tried to flip piece at: " + square.rank + "," + square.file);
     !this.props.sendMove || this.props.sendMove(move)
   }
-  move(attacker, target){
+  move(attacker, target) {
     var files = 'ABCDEFGH';
     var ranks = '1234';
-    console.log("Tried to attack/move from: " + attacker.rank+"," +attacker.file
-    + " to: " + target.rank+","+target.file);
-    var move =  files.charAt(attacker.file) + ranks.charAt(attacker.rank) + '>' +
-                files.charAt(target.file) + ranks.charAt(target.rank);
+    console.log("Tried to attack/move from: " + attacker.rank + "," + attacker.file
+      + " to: " + target.rank + "," + target.file);
+    var move = files.charAt(attacker.file) + ranks.charAt(attacker.rank) + '>' +
+      files.charAt(target.file) + ranks.charAt(target.rank);
     !this.props.sendMove || this.props.sendMove(move);
   }
-  handleClick(clicked){
+  handleClick(clicked) {
     var s = this.state.selected;
     var sp = s ? this.props.board[s.rank][s.file] : null;
     var cp = this.props.board[clicked.rank][clicked.file];
     if (s && s.rank == clicked.rank && s.file == clicked.file) {
-      if (sp == '?' && (this.props.myTurn || this.props.lastMove != null)) {
+      if (sp == '?' && (this.props.myTurn || this.props.lastMove != null || this.props.firstMove)) {
         this.flipPiece(clicked);
       }
       this.setState({ selected: null });
@@ -97,30 +97,30 @@ export default class Board extends React.Component {
       }
     }
   }
-  render(){
+  render() {
     var current = this.state.selected;
     var lastMove = this.props.lastMove
     var comp = this;
     var colHeaders = []
     colHeaders.push(<th />); // the row-label column needs no column header
-    for (var i=0; i < 8; i++) {
+    for (var i = 0; i < 8; i++) {
       colHeaders.push(<ColumnHeader file={i} />)
     }
-    var rowElements = this.props.board.map(function(row, rank){
+    var rowElements = this.props.board.map(function (row, rank) {
       var rowHeader = <RowHeader rank={rank} />
-      var squares = row.map(function(square, file){
+      var squares = row.map(function (square, file) {
         return (
           <Square
-            handleClick={(e)=>comp.handleClick(e)}
+            handleClick={(e) => comp.handleClick(e)}
             piece={square}
             selected={current && current.rank == rank && current.file == file}
-            lastMove = {lastMove}
+            lastMove={lastMove}
             rank={rank}
             file={file}
-            key={(rank+file)*(rank+file+1)/2 + file}
-            >
+            key={(rank + file) * (rank + file + 1) / 2 + file}
+          >
           </Square>);
-        }
+      }
       );
       return (<tr>{rowHeader}{squares}</tr>);
     });
@@ -131,7 +131,7 @@ export default class Board extends React.Component {
       </table>
     )
   }
-  IOwn(square){
+  IOwn(square) {
     var piece = this.props.board[square.rank][square.file];
     return NotationToColor[piece] == this.props.myColor;
   }

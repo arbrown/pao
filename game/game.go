@@ -325,6 +325,10 @@ func (g *Game) broadcastBoard() {
 	if g.NextPlayer != nil {
 		numPlayers++
 	}
+	firstMove := false
+	if len(g.gameState.RemainingPieces) == 32 {
+		firstMove = true
+	}
 	r := command.BoardCommand{
 		Action:     "board",
 		Board:      g.gameState.KnownBoard,
@@ -334,7 +338,9 @@ func (g *Game) broadcastBoard() {
 		LastMove:   g.lastMove,
 		WhoseTurn:  g.CurrentPlayer.Name,
 		TurnColor:  "green",
-		NumPlayers: numPlayers}
+		NumPlayers: numPlayers,
+		FirstMove:  firstMove,
+	}
 
 	if g.CurrentPlayer == g.red {
 		r.TurnColor = "red"
@@ -529,7 +535,11 @@ func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 
 func (g *Game) tryMove(pc command.PlayerCommand) bool {
 	if pc.P != g.CurrentPlayer {
-		return false
+		if len(g.gameState.RemainingPieces) != 32 {
+			return false
+		}
+		// First move! Let player 2 go first if he wants to!
+		g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
 	}
 	move, err := parseMove(pc.C.Argument)
 	if err != nil {
