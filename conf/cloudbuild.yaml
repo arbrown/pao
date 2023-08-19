@@ -31,7 +31,7 @@ steps:
 
         - name: 'node'
           entrypoint: 'npm'
-          args: ['run', 'build']
+          args: ['--prefix', '${_SRC_DIRECTORY}/react-app/','run', 'build']
 
         - name: 'debian'
           args: ['cp', '-R', './react-app/build', 'deploy/react-app/build']
