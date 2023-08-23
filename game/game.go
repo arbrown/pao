@@ -258,7 +258,7 @@ func (g *Game) undoMove() {
 	} else {
 		g.gameState.KnownBoard[srcRank][srcFile] = move.sourcePiece
 		g.gameState.KnownBoard[tgtRank][tgtFile] = move.targetPiece
-		if move.targetPiece != "" {
+		if move.targetPiece != "" && move.targetPiece != "." {
 			g.gameState.RemainingPieces = append(g.gameState.RemainingPieces, move.targetPiece)
 		}
 	}
