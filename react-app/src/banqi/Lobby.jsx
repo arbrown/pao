@@ -8,7 +8,10 @@ export default class Lobby extends React.Component {
         super(props)
         this.state = {
             name: null,
-            games: []
+            games: [],
+
+            showStaleLobby: false,
+            nextReloadCountdownSecs: 0,
         }
     }
 
@@ -27,6 +30,7 @@ export default class Lobby extends React.Component {
         var games = this.state.games.map(function (g) {
             return <LobbyGame id={g.ID} players={g.Players}
                 onClick={function () { comp.join(g.ID) }} />
+
         });
         var gameCount = games ? games.length : 0;
         return (
@@ -41,6 +45,8 @@ export default class Lobby extends React.Component {
                 <input type="text" ref="name" value={this.state.name} onChange={(e) => this.nameChanged(e)} placeholder="Your Name" />
                 <div className="lobby-current-games">
                     <h3>{gameCount} Current Game{gameCount == 1 ? "" : "s"}</h3>
+                    {this.state.showStaleLobby &&
+                        <div className="stale-lobby-warning">Lobby is stale. Will auto-refresh in {this.state.nextReloadCountdownSecs} seconds. <button onClick={(e) => this.ResetBackoffThenReload()}>Refresh now</button></div>}
                     <ul className="games">
                         {games}
                     </ul>
@@ -53,29 +59,55 @@ export default class Lobby extends React.Component {
     setName(name) {
         this.setState({ name })
     }
+    ResetBackoffThenReload() {
+        var comp = this;
+        this.reloadBackoffStart = new Date().getTime();
+        this.Reload()
+    }
     Reload() {
         var comp = this;
+
+        var secondsSinceBackoffStart = (new Date().getTime() - comp.reloadBackoffStart) / 1000
+        // Reloads every second for the two minutes, sub 5 seconds for at least 5 minutes.
+        // Hits maximum backoff within 20 minutes. Maximum backoff is 5 minutes.
+        var backoffSeconds = Math.min(Math.floor(Math.pow(1.005, secondsSinceBackoffStart), 300));
+        comp.nextReloadTime = new Date().getTime() + backoffSeconds * 1000;
+        clearTimeout(comp.reloader);
+        comp.reloader = setTimeout(() => comp.Reload(), backoffSeconds * 1000);
+
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                var data = JSON.parse(xhr.responseText)
-                if (data) {
-                    comp.setState({ games: data });
-                } else {
-                    comp.setState({ games: [] });
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200) {
+                    var data = JSON.parse(xhr.responseText)
+                    if (!data) {
+                        data = []
+                    }
+                    comp.lastReloadSuccessTime = new Date().getTime()
+                    comp.setState({ games: data, showStaleLobby: false });
                 }
             }
         }
         xhr.open("GET", "/listGames", true);
         xhr.send();
     }
+
+    UpdateStaleLobbyWarning() {
+        var now = new Date().getTime();
+        var countDown = Math.round((this.nextReloadTime - now) / 1000);
+        this.setState({
+            showStaleLobby: (new Date().getTime() - this.lastReloadSuccessTime) > 5 * 1000,
+            nextReloadCountdownSecs: countDown,
+        })
+    }
     componentDidMount() {
-        this.Reload();
+        this.ResetBackoffThenReload();
         var comp = this;
-        this.reloader = setInterval(() => comp.Reload(), 10 * 1000);
+        this.staleLobbyWarner = setInterval(() => comp.UpdateStaleLobbyWarning(), 1 * 1000);
     }
     componentWillUnmount() {
-        clearInterval(this.reloader)
+        clearTimeout(this.reloader);
+        clearInterval(this.staleLobbyWarner);
     }
 
 }

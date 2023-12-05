@@ -84,6 +84,13 @@ h2 {
 
 }
 
+.lobby .stale-lobby-warning {
+  border: 1px solid black;
+  display: block;
+  background-color: #FFF3C4;
+  padding: 10px;
+}
+
 .lobby div button {
   margin-top: 10px;
 }
