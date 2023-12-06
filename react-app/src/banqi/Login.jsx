@@ -36,7 +36,7 @@ export default class Login extends React.Component {
     var comp=this;
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
-      if (xhr.readyState==4 && xhr.status == 200){
+      if (xhr.readyState===4 && xhr.status === 200){
           if (comp.props.setName){
             comp.props.setName(xhr.responseText);
           }

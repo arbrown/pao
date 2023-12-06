@@ -17,13 +17,13 @@ export default class DeadPieces extends React.Component {
     var dead = this.props.dead;
     for (var i= 0; i<dead.length; i++){
       var color = NotationToColor[dead[i]]
-      if (color == 'red'){
+      if (color === 'red'){
         redDead.push(dead[i])
-      } else if (color == 'black'){
+      } else if (color === 'black'){
         blackDead.push(dead[i])
       }
     }
-    if (this.state.sort == 'strength') {
+    if (this.state.sort === 'strength') {
       redDead.sort(StrengthCompareD);
       blackDead.sort(StrengthCompareD);
     }
@@ -49,7 +49,7 @@ export default class DeadPieces extends React.Component {
     classes.push(NotationToCss[piece]);
     var classString = classes.reduce(function(p, c) { return p + " " + c});
     var title = state + " " + type;
-    if (state == 'unborn') {
+    if (state === 'unborn') {
         title += " " + chances[type] + "%";
     }
     return <div className={classString} title={title} />
@@ -65,7 +65,7 @@ export default class DeadPieces extends React.Component {
       if (dead.indexOf(piece) >= 0) {
         state = 'dead';
         dead = dead.replace(piece, '');
-        if (piece == lastDead) {
+        if (piece === lastDead) {
           lastMove = true;
           lastDead = ''
         }
@@ -81,7 +81,7 @@ export default class DeadPieces extends React.Component {
     for (var rank=0; rank < 4; rank++) {
       for (var file=0; file < 8; file++) {
         var piece = board[rank][file]
-        if (piece != '?' && piece != '.') {
+        if (piece !== '?' && piece !== '.') {
           knownPieces.push(piece);
         }
       }
@@ -89,30 +89,31 @@ export default class DeadPieces extends React.Component {
     return knownPieces;
   }
     computeRemainingChances(dead, board) {
-      var remaining = 'kggeecchhpppppqq' + 'KGGEECCHHPPPPPQQ';
-      var chances = {};
+      // eslint-disable-next-line
+      let remaining = 'kggeecchhpppppqq' + 'KGGEECCHHPPPPPQQ';
+      let chances = {};
       dead = dead.concat(this.collectKnownPieces(board));
-      var pieceCounts = {}
-      for (var i in dead) {
-          var piece = dead[i];
-          var index = remaining.indexOf(piece);
+      let pieceCounts = {}
+      for (let i in dead) {
+          let piece = dead[i];
+          let index = remaining.indexOf(piece);
           remaining = remaining.slice(0, index) + remaining.slice(index + 1);
       }
 
-      for (var i = 0; i< remaining.length; i++) {
-          var piece = remaining[i];
-          var type = NotationToCss[piece];
+      for (let i = 0; i< remaining.length; i++) {
+          let piece = remaining[i];
+          let type = NotationToCss[piece];
           if (pieceCounts[type]) {
               pieceCounts[type]++
           } else {
               pieceCounts[type] = 1;
           }
       }
-      for (var type in pieceCounts) {
-          if (remaining.indexOf(piece) != -1) {
-              var percent = ((pieceCounts[type] / remaining.length) * 100).toFixed(2);
+      for (let type in pieceCounts) {
+          //if (remaining.indexOf(piece) !== -1) {
+              let percent = ((pieceCounts[type] / remaining.length) * 100).toFixed(2);
               chances[type] =  percent;
-          }
+          //}
       }
       return chances;
   }

@@ -75,7 +75,7 @@ export default class Game extends React.Component {
             var xhttp = new XMLHttpRequest();
             var game = this;
             xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
+                if (this.readyState === 4 && this.status === 200) {
                     var r = JSON.parse(this.response);
                     params = { name: game.props.name, id: r.ID }
                     game.tryConnect(document.location.port, params);
@@ -183,7 +183,7 @@ class GameState extends React.Component {
             headers.push(<h2 style={{ color: this.props.turnColor }}>{this.props.whoseTurn}'s Turn</h2>);
         }
         var cannon;
-        if (this.props.myColor == "red") {
+        if (this.props.myColor === "red") {
             cannon = <div className="banner-piece banqi-square red-cannon" />
         } else {
             cannon = <div className="banner-piece banqi-square black-cannon" />
@@ -194,7 +194,7 @@ class GameState extends React.Component {
                 <div className="headers">
                     {headers}
                 </div>
-                {this.props.myColor == null ? <div className="banner-piece banqi-square red-cannon"></div> : cannon}
+                {this.props.myColor === null ? <div className="banner-piece banqi-square red-cannon"></div> : cannon}
             </div>
         )
     }
