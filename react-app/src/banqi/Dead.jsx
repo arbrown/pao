@@ -110,10 +110,8 @@ export default class DeadPieces extends React.Component {
           }
       }
       for (let type in pieceCounts) {
-          //if (remaining.indexOf(piece) !== -1) {
-              let percent = ((pieceCounts[type] / remaining.length) * 100).toFixed(2);
-              chances[type] =  percent;
-          //}
+          let percent = ((pieceCounts[type] / remaining.length) * 100).toFixed(2);
+          chances[type] =  percent;
       }
       return chances;
   }
