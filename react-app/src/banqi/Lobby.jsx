@@ -44,7 +44,7 @@ export default class Lobby extends React.Component {
                 <h2>Pao Lobby</h2>
                 <input type="text" ref="name" value={this.state.name} onChange={(e) => this.nameChanged(e)} placeholder="Your Name" />
                 <div className="lobby-current-games">
-                    <h3>{gameCount} Current Game{gameCount == 1 ? "" : "s"}</h3>
+                    <h3>{gameCount} Current Game{gameCount === 1 ? "" : "s"}</h3>
                     {this.state.showStaleLobby &&
                         <div className="stale-lobby-warning">Lobby is stale. Will auto-refresh in {this.state.nextReloadCountdownSecs} seconds. <button onClick={(e) => this.ResetBackoffThenReload()}>Refresh now</button></div>}
                     <ul className="games">
@@ -60,7 +60,6 @@ export default class Lobby extends React.Component {
         this.setState({ name })
     }
     ResetBackoffThenReload() {
-        var comp = this;
         this.reloadBackoffStart = new Date().getTime();
         this.Reload()
     }
@@ -77,8 +76,8 @@ export default class Lobby extends React.Component {
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4) {
-                if (xhr.status == 200) {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
                     var data = JSON.parse(xhr.responseText)
                     if (!data) {
                         data = []

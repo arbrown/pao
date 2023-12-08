@@ -15,7 +15,7 @@ class Square extends React.Component {
     var coord = files.charAt(this.props.file) + ranks.charAt(this.props.rank)
     classes.push('banqi-square');
     classes.push('banqi-square-' + coord)
-    if (this.props.lastMove && this.props.lastMove.indexOf(coord) != -1) {
+    if (this.props.lastMove && this.props.lastMove.indexOf(coord) !== -1) {
       classes.push('last-move')
     }
     if (this.props.selected) {
@@ -81,9 +81,8 @@ export default class Board extends React.Component {
   handleClick(clicked) {
     var s = this.state.selected;
     var sp = s ? this.props.board[s.rank][s.file] : null;
-    var cp = this.props.board[clicked.rank][clicked.file];
-    if (s && s.rank == clicked.rank && s.file == clicked.file) {
-      if (sp == '?' && (this.props.myTurn || this.props.lastMove != null || this.props.firstMove)) {
+    if (s && s.rank === clicked.rank && s.file === clicked.file) {
+      if (sp === '?' && (this.props.myTurn || this.props.lastMove !== null || this.props.firstMove)) {
         this.flipPiece(clicked);
       }
       this.setState({ selected: null });
@@ -113,7 +112,7 @@ export default class Board extends React.Component {
           <Square
             handleClick={(e) => comp.handleClick(e)}
             piece={square}
-            selected={current && current.rank == rank && current.file == file}
+            selected={current && current.rank === rank && current.file === file}
             lastMove={lastMove}
             rank={rank}
             file={file}
@@ -133,6 +132,6 @@ export default class Board extends React.Component {
   }
   IOwn(square) {
     var piece = this.props.board[square.rank][square.file];
-    return NotationToColor[piece] == this.props.myColor;
+    return NotationToColor[piece] === this.props.myColor;
   }
 }
