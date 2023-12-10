@@ -27,16 +27,22 @@ type SuggestCommand struct {
 
 // BoardCommand is an update of the board state from server to client
 type BoardCommand struct {
-	Action     string
-	Board      [][]string
-	Dead       []string
-	LastMove   []string
-	LastDead   string
-	YourTurn   bool
-	WhoseTurn  string
-	TurnColor  string
-	NumPlayers int
-	FirstMove  bool
+	Action    string
+	Board     [][]string
+	Dead      []string
+	LastMove  []string
+	LastDead  string
+	YourTurn  bool
+	FirstMove bool
+	Players   []BoardPlayerState
+	Player    int // Index into players array. Or -1 for kibitzer
+}
+
+// This is info about each player associated with an instance of a game. Included in BoardCommand
+type BoardPlayerState struct {
+	Name        string
+	Color       string
+	IsTheirTurn bool
 }
 
 // ColorCommand is a command indicating to a client which color is theirs
@@ -48,6 +54,6 @@ type ColorCommand struct {
 // GameOverCommand is a command from the server to clients indicating that
 // the game has concluded and who has won
 type GameOverCommand struct {
-	Action, Message string
-	YouWin          bool
+	Action, Message, Reason string
+	YouWin                  bool
 }

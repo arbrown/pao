@@ -61,6 +61,8 @@ td.banqi-square.selected {
   width: 45px;
   background-size: cover;
   display: inline-block;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .game-state-banner div.banners h3,
@@ -72,6 +74,30 @@ h2 {
 
 .game-state-banner div.headers {
   display: inline-block;
+}
+.game-state-banner div.headers .game-info-header {
+  display: block;
+}
+
+.game-state-banner div.headers .turn-indicator {
+  font-size: 10pt;
+  text-transform: capitalize;
+  font-family: arial, helvetica;
+}
+.game-state-banner div.headers h2 .middle-valign-container {
+  display: flex;
+  padding: 5pt;
+  border: 1px solid gray;
+  border-radius: 5px;
+}
+.game-state-banner div.headers h2 .middle-valign-container div,
+.game-state-banner h2 .middle-valign-container span
+{
+  display: inline-block;
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .game-state-banner h2 {

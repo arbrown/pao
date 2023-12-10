@@ -21,22 +21,23 @@ import (
 // Game is a struct that represents the state and connections of a multiplayer
 // ban qi game that the server is hosting.
 type Game struct {
-	ID                        string
-	gameState                 gamestate.Gamestate
-	black, red                *player.Player
-	blackUndo, redUndo        bool
-	lastMove                  []string
-	lastDead                  string
-	active                    bool
-	commandChan               chan command.PlayerCommand
-	db                        *sql.DB
-	CurrentPlayer, NextPlayer *player.Player
-	pieceToInt                map[string]int
-	canAttack                 [][]bool
-	gameOverChan              chan bool
-	removeGameChan            chan *Game
-	kibitzers                 []*player.Player
-	moveHistory               []*move
+	ID                 string
+	gameState          gamestate.Gamestate
+	black, red         *player.Player
+	blackUndo, redUndo bool
+	lastMove           []string
+	lastDead           string
+	active             bool
+	commandChan        chan command.PlayerCommand
+	db                 *sql.DB
+	Players            []*player.Player
+	CurrentPlayerIndex int
+	pieceToInt         map[string]int
+	canAttack          [][]bool
+	gameOverChan       chan bool
+	removeGameChan     chan *Game
+	kibitzers          []*player.Player
+	moveHistory        []*move
 }
 
 var upgrader = &websocket.Upgrader{
@@ -45,6 +46,32 @@ var upgrader = &websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+func (g *Game) CurrentPlayer() *player.Player {
+	if g.CurrentPlayerIndex >= len(g.Players) {
+		return nil
+	}
+	return g.Players[g.CurrentPlayerIndex]
+}
+
+func (g *Game) NextPlayer() *player.Player {
+	if len(g.Players) <= 1 {
+		// If there are zero or 1 players, the next player does not exist
+		return nil
+	}
+	ni := (g.CurrentPlayerIndex + 1) % len(g.Players)
+	return g.Players[ni]
+}
+
+func (g *Game) IsTurnOf(p *player.Player) bool {
+	// Can't take a turn if there's not enough players
+	// Either player can go first
+	return len(g.Players) == 2 && (g.CurrentPlayer() == p || len(g.gameState.RemainingPieces) == 32)
+}
+
+func (g *Game) SwitchPlayers() {
+	g.CurrentPlayerIndex = (g.CurrentPlayerIndex + 1) % len(g.Players)
 }
 
 // Join causes a connection to join a game as a websocket and player
@@ -59,16 +86,18 @@ func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *h
 
 // JoinWs joins a game with an existing websocket
 func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool) bool {
-	if g.CurrentPlayer == nil {
-		g.CurrentPlayer = player.NewPlayer(conn, name, user, false, bot)
-		fmt.Printf("User [%s] Joined as #1\n", g.CurrentPlayer.Name)
-		go g.listenPlayer(g.CurrentPlayer)
+	if len(g.Players) == 0 {
+		p := player.NewPlayer(conn, name, user, false, bot)
+		g.Players = append(g.Players, p)
+		fmt.Printf("User [%s] Joined as #1\n", p.Name)
+		go g.listenPlayer(p)
 		go g.startGame()
 		return true
-	} else if g.NextPlayer == nil {
-		fmt.Printf("User [%s] Trying to join as #2\n", name)
-		g.NextPlayer = player.NewPlayer(conn, name, user, false, bot)
-		go g.listenPlayer(g.NextPlayer)
+	} else if len(g.Players) == 1 {
+		p := player.NewPlayer(conn, name, user, false, bot)
+		g.Players = append(g.Players, p)
+		fmt.Printf("User [%s] Trying to join as #2\n", p.Name)
+		go g.listenPlayer(p)
 		return true
 	} else {
 		return g.JoinKibitz(conn, name, user)
@@ -194,16 +223,16 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 			g.suggestMove(c)
 		} else if ok := g.tryMove(c); ok {
 			// check for a victory
-			if winner, won := g.checkVictory(); won {
+			if winner, won, reason := g.checkVictory(); won {
 				g.broadcastBoard()
-				g.broadcastVictory(winner)
+				g.broadcastVictory(winner, reason)
 				fmt.Println("Reporting end of game from handleCommand - move")
 				g.endGame()
 				fmt.Println("Trying to return from handle command")
 				return
 			}
 			// move successful, swap players
-			g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
+			g.SwitchPlayers()
 			g.broadcastBoard()
 		}
 	case "resign":
@@ -270,7 +299,7 @@ func (g *Game) undoMove() {
 	}
 
 	g.moveHistory = g.moveHistory[:l-1]
-	g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
+	g.SwitchPlayers()
 	g.broadcastBoard()
 	g.redUndo, g.blackUndo = false, false
 
@@ -284,10 +313,11 @@ func (g *Game) resign(p *player.Player) {
 	if g.red == nil {
 		return
 	}
-	if p == g.CurrentPlayer {
-		g.broadcastVictory(g.NextPlayer)
+	reason := fmt.Sprintf("%s resigned", p.Name)
+	if p == g.Players[0] {
+		g.broadcastVictory(g.Players[1], reason)
 	} else {
-		g.broadcastVictory(g.CurrentPlayer)
+		g.broadcastVictory(g.Players[0], reason)
 	}
 
 	g.endGame()
@@ -324,44 +354,51 @@ func (g *Game) getTaunt() string {
 }
 
 func (g *Game) broadcastBoard() {
-	numPlayers := 0
-	if g.CurrentPlayer != nil {
-		numPlayers++
-	}
-	if g.NextPlayer != nil {
-		numPlayers++
-	}
 	firstMove := false
 	if len(g.gameState.RemainingPieces) == 32 {
 		firstMove = true
 	}
 	r := command.BoardCommand{
-		Action:     "board",
-		Board:      g.gameState.KnownBoard,
-		YourTurn:   g.NextPlayer != nil,
-		Dead:       g.gameState.DeadPieces,
-		LastDead:   g.lastDead,
-		LastMove:   g.lastMove,
-		WhoseTurn:  g.CurrentPlayer.Name,
-		TurnColor:  "green",
-		NumPlayers: numPlayers,
-		FirstMove:  firstMove,
+		Action:    "board",
+		Board:     g.gameState.KnownBoard,
+		YourTurn:  false,
+		Dead:      g.gameState.DeadPieces,
+		LastDead:  g.lastDead,
+		LastMove:  g.lastMove,
+		FirstMove: firstMove,
+		Players:   []command.BoardPlayerState{},
 	}
 
-	if g.CurrentPlayer == g.red {
-		r.TurnColor = "red"
-	}
-	if g.CurrentPlayer == g.black {
-		r.TurnColor = "black"
+	currentPlayer := g.CurrentPlayer()
+	nextPlayer := g.NextPlayer()
+
+	for _, p := range g.Players {
+		c := "green"
+		turn := g.IsTurnOf(p)
+		if p == g.black {
+			c = "black"
+		} else if p == g.red {
+			c = "red"
+		}
+		r.Players = append(r.Players, command.BoardPlayerState{
+			Name:        p.Name,
+			Color:       c,
+			IsTheirTurn: turn,
+		})
 	}
 
-	if g.CurrentPlayer != nil {
-		g.CurrentPlayer.Ws.WriteJSON(r)
+	if currentPlayer != nil {
+		r.YourTurn = true && len(g.Players) > 1 // Can't take a turn if there's not enough players
+		r.Player = g.CurrentPlayerIndex
+		currentPlayer.Ws.WriteJSON(r)
 	}
-	if g.NextPlayer != nil {
+	if nextPlayer != nil {
 		r.YourTurn = false
-		g.NextPlayer.Ws.WriteJSON(r)
+		r.Player = (g.CurrentPlayerIndex + 1) % len(g.Players)
+		nextPlayer.Ws.WriteJSON(r)
 	}
+	r.YourTurn = false
+	r.Player = -1
 	for _, k := range g.kibitzers {
 		k.Ws.WriteJSON(r)
 	}
@@ -375,23 +412,28 @@ func (g *Game) broadcastChat(from *player.Player, message, color string) {
 	g.broadcast(chat)
 }
 
-func (g *Game) broadcastVictory(victor *player.Player) {
+func (g *Game) broadcastVictory(victor *player.Player, reason string) {
 	fmt.Printf("I think the victor is: %+v\n", victor)
 	var loser *player.Player
-	var winColor string
-	if g.black == victor {
-		loser = g.red
-		winColor = "black"
+	if victor == g.CurrentPlayer() {
+		loser = g.NextPlayer()
 	} else {
-		loser = g.black
+		loser = g.CurrentPlayer()
+	}
+	var winColor string = "green"
+	if g.black == victor {
+		winColor = "black"
+	} else if g.red == victor {
 		winColor = "red"
 	}
+	victorName := "Nobody"
 	if victor != nil && victor.Ws != nil {
 		fmt.Println("I told the victor he won")
-		c := command.GameOverCommand{Action: "gameover", Message: "You win!", YouWin: true}
+		c := command.GameOverCommand{Action: "gameover", Message: "You win!", Reason: reason, YouWin: true}
 		victor.Ws.WriteJSON(c)
+		victorName = victor.Name
 	}
-	lose := command.GameOverCommand{Action: "gameover", Message: "You lose!", YouWin: false}
+	lose := command.GameOverCommand{Action: "gameover", Message: "You lose!", Reason: reason, YouWin: false}
 	fmt.Printf("Victor: %+v, red: %+v, black: %+v\n", victor, g.red, g.black)
 	if g.red == victor && g.black != nil {
 		loser = g.black
@@ -399,10 +441,10 @@ func (g *Game) broadcastVictory(victor *player.Player) {
 		g.black.Ws.WriteJSON(lose)
 	}
 	if g.black == victor && g.red != nil {
-		fmt.Println("I told red he lost")
+		fmt.Println("I told red he lost.")
 		g.red.Ws.WriteJSON(lose)
 	}
-	c := command.GameOverCommand{Action: "gameover", Message: "Game Over!", YouWin: false}
+	c := command.GameOverCommand{Action: "gameover", Message: fmt.Sprintf("%s won!", victorName), Reason: reason, YouWin: false}
 	for _, k := range g.kibitzers {
 		k.Ws.WriteJSON(c)
 	}
@@ -433,21 +475,30 @@ func (g *Game) reportVictory(victor, loser *player.Player, winColor string) {
 	}
 }
 
+func (g *Game) hasEnded() bool {
+	return g.gameOverChan == nil
+}
+
 func (g *Game) endGame() {
+	if g.gameOverChan == nil {
+		// Game already over. Ignore this
+		return
+	}
 	g.removeGameChan <- g
 	fmt.Printf("gameOverChan: %v\n", g.gameOverChan)
 	g.gameOverChan <- true
+	g.gameOverChan = nil
 	g.closeWebSockets()
 	fmt.Println("Trying to return from endGame")
 	return
 }
 
 func (g *Game) broadcast(v interface{}) {
-	if g.CurrentPlayer != nil {
-		g.CurrentPlayer.Ws.WriteJSON(v)
+	if g.CurrentPlayer() != nil {
+		g.CurrentPlayer().Ws.WriteJSON(v)
 	}
-	if g.NextPlayer != nil {
-		g.NextPlayer.Ws.WriteJSON(v)
+	if g.NextPlayer() != nil {
+		g.NextPlayer().Ws.WriteJSON(v)
 	}
 	for _, k := range g.kibitzers {
 		k.Ws.WriteJSON(v)
@@ -491,9 +542,18 @@ func (g *Game) listenPlayer(p *player.Player) {
 			// }
 		}
 	}
-	fmt.Println("Stopping listen loop")
 	go readLoop(p.Ws)
-	if p == g.CurrentPlayer || p == g.NextPlayer {
+	if !g.hasEnded() && (p == g.CurrentPlayer() || p == g.NextPlayer()) {
+
+		// If both player slots are taken, and one of the players disconnects, send a victory message
+		if len(g.Players) == 2 {
+			if p == g.CurrentPlayer() {
+				g.broadcastVictory(g.NextPlayer(), fmt.Sprintf("%s disconnected", g.CurrentPlayer().Name))
+			} else {
+				g.broadcastVictory(g.CurrentPlayer(), fmt.Sprintf("%s disconnected", g.NextPlayer().Name))
+			}
+		}
+
 		g.endGame()
 	}
 }
@@ -540,13 +600,28 @@ func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 }
 
 func (g *Game) tryMove(pc command.PlayerCommand) bool {
-	if pc.P != g.CurrentPlayer {
-		if len(g.gameState.RemainingPieces) != 32 {
+	if len(g.Players) != 2 {
+		// Can't make any moves until there are 2 players
+		return false
+	}
+
+	// First move. As defined by 32 unflipped pieces. Allow either player to go first.
+	if len(g.gameState.RemainingPieces) == 32 {
+		if pc.P == g.CurrentPlayer() {
+			// ok, expecting move by this player
+		} else if pc.P == g.NextPlayer() {
+			g.SwitchPlayers()
+		} else {
+			// Bad kibitzer try to take a turn
 			return false
 		}
-		// First move! Let player 2 go first if he wants to!
-		g.CurrentPlayer, g.NextPlayer = g.NextPlayer, g.CurrentPlayer
 	}
+
+	if pc.P != g.CurrentPlayer() {
+		// Wait your turn!
+		return false
+	}
+
 	move, err := parseMove(pc.C.Argument)
 	if err != nil {
 		fmt.Printf("Couldn't parse move: %v\n", err.Error())
@@ -602,12 +677,12 @@ func (g *Game) flip(m *move) (bool, string) {
 		//First move! Assign colors based on piece
 		switch piece {
 		case "K", "G", "E", "C", "H", "P", "Q":
-			g.black = g.CurrentPlayer
-			g.red = g.NextPlayer
+			g.black = g.CurrentPlayer()
+			g.red = g.NextPlayer()
 			break
 		case "k", "g", "e", "c", "h", "p", "q":
-			g.red = g.CurrentPlayer
-			g.black = g.NextPlayer
+			g.red = g.CurrentPlayer()
+			g.black = g.NextPlayer()
 		}
 		g.broadcastColors()
 	}
@@ -689,7 +764,7 @@ func (g *Game) performMove(m *move) (bool, string, string) {
 	return true, srcPiece, tgtPiece
 }
 
-func (g *Game) checkVictory() (victor *player.Player, won bool) {
+func (g *Game) checkVictory() (victor *player.Player, won bool, reason string) {
 	defer func() {
 		fmt.Printf("Game over =%v because:\n", won)
 		fmt.Printf("remainingPieces: %v\n", g.gameState.RemainingPieces)
@@ -716,25 +791,28 @@ func (g *Game) checkVictory() (victor *player.Player, won bool) {
 	if redRemains && !blackRemains {
 		victor = g.red
 		won = true
+		reason = "No black pieces remain"
 		return
 	}
 	if blackRemains && !redRemains {
 		victor = g.black
 		won = true
+		reason = "No red pieces remain"
 		return
 	}
 	fmt.Printf("redRemains: %v, blackRemains:%v\n", redRemains, blackRemains)
 	victor = nil
 	won = false
+	reason = ""
 	return
 }
 
 func (g *Game) currentPlayerOwns(rank, file int) bool {
 	switch g.gameState.KnownBoard[rank][file] {
 	case "K", "G", "E", "C", "H", "P", "Q":
-		return g.CurrentPlayer == g.black
+		return g.CurrentPlayer() == g.black
 	case "k", "g", "e", "c", "h", "p", "q":
-		return g.CurrentPlayer == g.red
+		return g.CurrentPlayer() == g.red
 	default:
 		return false
 	}
