@@ -18,7 +18,8 @@ export default class Game extends React.Component {
             dead: [],
             numPlayers: 0,
             whoseTurn: null,
-            turnColor: null
+            turnColor: null,
+            gameOverReason: "",
         };
     }
     render() {
@@ -26,11 +27,12 @@ export default class Game extends React.Component {
             <div>
                 <GameState myTurn={this.state.myTurn}
                     gameOver={this.state.gameOver}
+                    gameOverMessage={this.state.gameOverMessage}
+                    gameOverReason={this.state.gameOverReason}
                     won={this.state.won}
                     myColor={this.state.myColor}
-                    whoseTurn={this.state.whoseTurn}
-                    turnColor={this.state.turnColor}
-                    numPlayers={this.state.numPlayers} />
+                    players={this.state.players}
+                    player={this.state.player} />
                 <Board
                     board={this.state.board}
                     myTurn={this.state.myTurn}
@@ -146,10 +148,9 @@ export default class Game extends React.Component {
             dead: boardCommand.Dead,
             lastMove: boardCommand.LastMove,
             lastDead: boardCommand.LastDead,
-            whoseTurn: boardCommand.WhoseTurn,
-            turnColor: boardCommand.TurnColor,
-            numPlayers: boardCommand.NumPlayers,
             firstMove: boardCommand.FirstMove,
+            players: boardCommand.Players,
+            player: boardCommand.Player,
         })
     }
     handleChat(chatCommand) {
@@ -162,39 +163,60 @@ export default class Game extends React.Component {
         this.setState({ myColor })
     }
     handleGameOver(gameOverCommand) {
-        this.setState({ myTurn: false, gameOver: true, won: gameOverCommand.YouWin });
+        // Ignore spurious gameOverCommand
+        if(this.state.gameOver) {
+            return;
+        }
+        this.setState({ myTurn: false, gameOver: true, won: gameOverCommand.YouWin, gameOverMessage: gameOverCommand.Message, gameOverReason: gameOverCommand.Reason });
     }
 
 }
 
 class GameState extends React.Component {
     render() {
-        var headers = []
+        let cannons = {
+            "red": <div className="banner-piece banqi-square red-cannon"/>,
+            "black": <div className="banner-piece banqi-square black-cannon"/>,
+            "green": <div className="banner-piece banqi-square unflipped-piece"/>,
+        }
+
+        let turnIndicator = <div class="turn-indicator">🔼 TURN 🔼</div>
+        let turnPlaceholder = <div class="turn-indicator placeholder">&nbsp;</div>
+
+        let playerHeaders = []
+        for (let i=0; i<this.props.players?.length; ++i) {
+            let player = this.props.players[i]
+            let name = <span>{player.Name}</span>
+            let h =
+                <h2><div class="middle-valign-container"> 
+                    {cannons[player.Color]}
+                    {name}
+                    {cannons[player.Color]}
+                </div>{player.IsTheirTurn && ! this.props.gameOver && turnIndicator || turnPlaceholder}</h2>
+            playerHeaders.push(h);
+        }
+        if (this.props.players?.length < 2) {
+            let h =
+                <h2><div class="middle-valign-container">
+                    {cannons["green"]}
+                    <span>Waiting For Opponent</span>
+                    {cannons["green"]}
+                </div>{turnPlaceholder}</h2>
+            playerHeaders.push(h);
+        }
+
+        let headers = []
         if (this.props.gameOver) {
             headers.push(<h2 className="game-info-header">Game Over</h2>);
-            if (this.props.won) {
-                headers.push(<h3 className="game-info-subheader">You win!</h3>)
-            } else {
-                headers.push(<h3 className="game-info-subheader">You lose.</h3>)
-            }
-        } else if (this.props.numPlayers < 2) {
-            headers.push(<h2 style={{ color: this.props.turnColor }}>Waiting For Opponent</h2>);
-        } else {
-            headers.push(<h2 style={{ color: this.props.turnColor }}>{this.props.whoseTurn}'s Turn</h2>);
+            headers.push(<h2 className="game-info-header">{this.props.gameOverMessage} -- {this.props.gameOverReason}</h2>);
         }
-        var cannon;
-        if (this.props.myColor === "red") {
-            cannon = <div className="banner-piece banqi-square red-cannon" />
-        } else {
-            cannon = <div className="banner-piece banqi-square black-cannon" />
-        }
+        headers = headers.concat(playerHeaders)
+
         return (
             <div className="game-state-banner">
-                {cannon}
                 <div className="headers">
                     {headers}
                 </div>
-                {this.props.myColor === null ? <div className="banner-piece banqi-square red-cannon"></div> : cannon}
             </div>
         )
     }

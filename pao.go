@@ -106,11 +106,11 @@ func (lgh listGamesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var resp []gameResponse
 	for id, game := range lgh.games {
 		var players []string
-		if game.CurrentPlayer != nil {
-			players = append(players, game.CurrentPlayer.Name)
+		if game.CurrentPlayer() != nil {
+			players = append(players, game.CurrentPlayer().Name)
 		}
-		if game.NextPlayer != nil {
-			players = append(players, game.NextPlayer.Name)
+		if game.NextPlayer() != nil {
+			players = append(players, game.NextPlayer().Name)
 		}
 		if len(players) != 0 {
 			resp = append(resp, gameResponse{ID: id, Players: players})
