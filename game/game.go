@@ -255,7 +255,7 @@ func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
 func (g *Game) proposeStalemate(p *player.Player) string {
 	playerStalemate, opponentStalemate := false, false
 	if p.Kibitzer {
-		return fmt.Sprintf("*%q proposes a stalemate*", p.Name)
+		return fmt.Sprintf("*%q suggests a stalemate*", p.Name)
 	}
 	if p == g.red {
 		g.redStalemateProposed = !g.redStalemateProposed
