@@ -21,12 +21,14 @@ import (
 // Game is a struct that represents the state and connections of a multiplayer
 // ban qi game that the server is hosting.
 type Game struct {
-	ID                 string
-	gameState          gamestate.Gamestate
-	black, red         *player.Player
-	blackUndo, redUndo bool
-	lastMove           []string
-	lastDead           string
+	ID                   string
+	gameState            gamestate.Gamestate
+	black, red           *player.Player
+	blackUndo, redUndo   bool
+	redStalemateProposed bool
+	blackStalemateProposed bool
+	lastMove             []string
+	lastDead             string
 	active             bool
 	commandChan        chan command.PlayerCommand
 	db                 *sql.DB
@@ -244,7 +246,56 @@ func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
 	if strings.EqualFold(c.C.Argument, "/undo") {
 		return g.proposeUndo(c.P)
 	}
+	if strings.EqualFold(c.C.Argument, "/stalemate") {
+		return g.proposeStalemate(c.P)
+	}
 	return ""
+}
+
+func (g *Game) proposeStalemate(p *player.Player) string {
+	playerStalemate, opponentStalemate := false, false
+	if p.Kibitzer {
+		return fmt.Sprintf("*%q proposes a stalemate*", p.Name)
+	}
+	if p == g.red {
+		g.redStalemateProposed = !g.redStalemateProposed
+		playerStalemate = g.redStalemateProposed
+		opponentStalemate = g.blackStalemateProposed
+	} else if p == g.black {
+		g.blackStalemateProposed = !g.blackStalemateProposed
+		playerStalemate = g.blackStalemateProposed
+		opponentStalemate = g.redStalemateProposed
+	}
+
+	if playerStalemate && opponentStalemate {
+		g.executeStalemate()
+		return fmt.Sprintf("*%q accepts the stalemate. Game over.*", p.Name)
+	} else if playerStalemate {
+		return fmt.Sprintf("*%q proposes a stalemate*", p.Name)
+	} else {
+		return fmt.Sprintf("*%q no longer wishes for a stalemate*", p.Name)
+	}
+}
+
+func (g *Game) executeStalemate() {
+	reason := "Players agreed to a stalemate"
+	message := "Game Over: Stalemate"
+
+	// Broadcast stalemate to all players
+	gameOverCmd := command.GameOverCommand{Action: "gameover", Message: message, Reason: reason, YouWin: false}
+	if g.red != nil && g.red.Ws != nil {
+		g.red.Ws.WriteJSON(gameOverCmd)
+	}
+	if g.black != nil && g.black.Ws != nil {
+		g.black.Ws.WriteJSON(gameOverCmd)
+	}
+	for _, k := range g.kibitzers {
+		k.Ws.WriteJSON(gameOverCmd)
+	}
+
+	// Do NOT call reportVictory()
+	g.redStalemateProposed, g.blackStalemateProposed = false, false
+	g.endGame()
 }
 
 func (g *Game) proposeUndo(p *player.Player) string {
@@ -304,7 +355,7 @@ func (g *Game) undoMove() {
 	g.SwitchPlayers()
 	g.broadcastBoard()
 	g.redUndo, g.blackUndo = false, false
-
+	g.redStalemateProposed, g.blackStalemateProposed = false, false
 }
 
 func (g *Game) resign(p *player.Player) {
