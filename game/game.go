@@ -287,8 +287,10 @@ func (g *Game) undoMove() {
 	} else {
 		g.gameState.KnownBoard[srcRank][srcFile] = move.sourcePiece
 		g.gameState.KnownBoard[tgtRank][tgtFile] = move.targetPiece
+		// If a piece was captured (move.targetPiece was not empty and not a '.'),
+		// it's now back on the board, so it must be removed from DeadPieces.
+		// It should NOT be added to RemainingPieces, as it's a known, face-up piece on the board.
 		if move.targetPiece != "" && move.targetPiece != "." {
-			g.gameState.RemainingPieces = append(g.gameState.RemainingPieces, move.targetPiece)
 			for i, v := range g.gameState.DeadPieces {
 				if v == move.targetPiece {
 					g.gameState.DeadPieces = append(g.gameState.DeadPieces[:i], g.gameState.DeadPieces[i+1:]...)
