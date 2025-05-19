@@ -249,6 +249,18 @@ func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
 	if strings.EqualFold(c.C.Argument, "/stalemate") {
 		return g.proposeStalemate(c.P)
 	}
+	if strings.EqualFold(c.C.Argument, "/taunt") {
+		randomTaunt := g.getTaunt()
+		color := "black" // Default color
+		if c.P == g.red {
+			color = "red"
+		}
+		if c.P.Kibitzer == true {
+			color = "teal"
+		}
+		g.broadcastChat(c.P, randomTaunt, color)
+		return ""
+	}
 	return ""
 }
 
@@ -399,11 +411,11 @@ func (g *Game) broadcastSuggestion(from *player.Player, suggestedMove string) {
 }
 
 func (g *Game) suggestResign(p *player.Player) {
-	g.broadcastChat(p, g.getTaunt(), "darkcyan")
+	g.broadcastChat(p, g.GetTaunt(), "darkcyan")
 }
 
-func (g *Game) getTaunt() string {
-	return taunts[rand.Intn(len(taunts))]
+func (g *Game) GetTaunt() string {
+	return Taunts[rand.Intn(len(Taunts))]
 }
 
 func (g *Game) broadcastBoard() {
@@ -899,7 +911,8 @@ func generateUnknownBoard() [][]string {
 	return board
 }
 
-var taunts = []string{
+// Taunts is a list of taunts that can be used in the game.
+var Taunts = []string{
 	"I think you should resign.",
 	"This just isn't your game.",
 	"Good heavens, are you still trying to win?",
