@@ -1,10 +1,28 @@
 import React from 'react';
+import { timeAgo } from './timeago.js';
 
 class ChatMessage extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      now: Date.now()
+    };
+  }
+
+  componentDidMount() {
+    this.interval = setInterval(() => this.setState({ now: Date.now() }), 10000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
+  }
+
   render(){
     var css = "chat-message " + (this.props.auth ? "auth" : "");
+    const relativeTime = timeAgo(this.props.timestamp, this.state.now);
+
     return(
-      <div className={css}>
+      <div className={css} title={relativeTime}>
         <strong style={{color: this.props.color}}>{this.props.player}</strong>:
         &nbsp;
         <p>{this.props.text}</p>
@@ -33,7 +51,10 @@ export default class Chat extends React.Component {
   }
   render() {
     var messages = this.props.chats.map(function(message, i){
-      return (<ChatMessage key={i} player={message.player} text={message.text} color={message.color} auth={message.auth}/>);
+      if (!message.timestamp) {
+        return (<ChatMessage key={i} player={message.player} text={message.text} color={message.color} auth={message.auth} timestamp={new Date(0)}/>);
+      }
+      return (<ChatMessage key={i} player={message.player} text={message.text} color={message.color} auth={message.auth} timestamp={message.timestamp}/>);
     });
     return(
       <div className="chat">

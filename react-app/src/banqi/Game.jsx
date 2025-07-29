@@ -155,7 +155,7 @@ export default class Game extends React.Component {
     }
     handleChat(chatCommand) {
         var chats = this.state.chats;
-        chats.push({ player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color, auth: chatCommand.Auth })
+        chats.push({ player: chatCommand.Player, text: chatCommand.Message, color: chatCommand.Color, auth: chatCommand.Auth, timestamp: new Date() })
         this.setState({ chats });
     }
     handleColor(colorCommand) {
