@@ -250,7 +250,7 @@ func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
 		return g.proposeStalemate(c.P)
 	}
 	if strings.EqualFold(c.C.Argument, "/taunt") {
-		randomTaunt := g.getTaunt()
+		randomTaunt := g.GetTaunt()
 		color := "black" // Default color
 		if c.P == g.red {
 			color = "red"
