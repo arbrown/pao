@@ -1,6 +1,6 @@
 {
   "DbConfig" : {
-    "driver" : "sqlite3",
+    "driver" : "sqlite",
     "connectionString" : "pao.s3db"
   },
   "AuthConfig" : {
