@@ -11,7 +11,7 @@ import (
 	paoDb "github.com/arbrown/pao/db"
 	"github.com/arbrown/pao/game"
 	"github.com/arbrown/pao/settings"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var (
