@@ -14,12 +14,12 @@ type move struct {
 
 func parseMove(s string) (m *move, e error) {
 	if len(s) < 3 {
-		return nil, errors.New("Command string not long enough")
+		return nil, errors.New("command string not long enough")
 	}
 	if s[0:1] == "?" {
 		return &move{isFlip: true, source: s[1:3]}, nil
 	} else if len(s) < 5 {
-		return nil, errors.New("Command string not long enough")
+		return nil, errors.New("command string not long enough")
 	}
 	fmt.Printf("Move: %+v", s)
 	return &move{isFlip: false, source: s[0:2], target: s[3:5]}, nil

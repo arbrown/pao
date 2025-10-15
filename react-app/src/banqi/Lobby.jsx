@@ -42,7 +42,7 @@ export default class Lobby extends React.Component {
                 </span>
                 <Login setName={(n) => this.setName(n)} />
                 <h2>Pao Lobby</h2>
-                <input type="text" ref="name" value={this.state.name} onChange={(e) => this.nameChanged(e)} placeholder="Your Name" />
+                <input type="text" ref="name" value={this.state.name} onChange={(e) => this.nameChanged(e)} placeholder="Your Name" autocomplete="username"/>
                 <div className="lobby-current-games">
                     <h3>{gameCount} Current Game{gameCount === 1 ? "" : "s"}</h3>
                     {this.state.showStaleLobby &&

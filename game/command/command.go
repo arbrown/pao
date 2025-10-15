@@ -57,3 +57,10 @@ type GameOverCommand struct {
 	Action, Message, Reason string
 	YouWin                  bool
 }
+
+// SessionCommand sends the session ID to the client for reconnection purposes
+type SessionCommand struct {
+	Action    string
+	SessionID string
+	GameID    string
+}

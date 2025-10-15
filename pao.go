@@ -130,6 +130,8 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("105: user: %+v\n", user)
 	id := r.FormValue("id")
 	name := r.FormValue("name")
+	sessionID := r.FormValue("sessionId")
+	fmt.Printf("Received connection request - id: %s, name: %s, sessionId: %s\n", id, name, sessionID)
 	fmt.Println(id)
 	if name == "" {
 		name = "Anonymous Coward"
@@ -139,13 +141,13 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("All Games: %v\n", gh.games)
 		if existingGame, ok := gh.games[id]; ok {
 			fmt.Println("Trying to join existing game")
-			existingGame.Join(w, r, name, user)
+			existingGame.Join(w, r, name, user, sessionID)
 		} else {
 			// make the id requested
 			g := game.NewGame(id, gh.removeGameChan, gh.db)
 			fmt.Printf("Made new game %s\n", id)
 			gh.games[g.ID] = g
-			g.Join(w, r, name, user)
+			g.Join(w, r, name, user, sessionID)
 		}
 	} else {
 		// no id specified, make the game
@@ -157,7 +159,7 @@ func (gh gameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Made new game %d\n", newID)
 		gh.games[g.ID] = g
 		fmt.Printf("Trying to join new game as: %+v\n", user)
-		if ok := g.Join(w, r, name, user); !ok {
+		if ok := g.Join(w, r, name, user, sessionID); !ok {
 			delete(gh.games, g.ID)
 		}
 	}

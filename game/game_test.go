@@ -1,6 +1,7 @@
 package game_test
 
 import (
+	"io"
 	"testing"
 	"time"
 
@@ -62,8 +63,8 @@ func (m *mockConn) Close() error {
 }
 
 // NextReader is a no-op, not used in the tested code path.
-func (m *mockConn) NextReader() (int, error) {
-	return 0, nil
+func (m *mockConn) NextReader() (int, io.Reader, error) {
+	return 0, nil, nil
 }
 
 func TestTauntCommand(t *testing.T) {
@@ -73,12 +74,12 @@ func TestTauntCommand(t *testing.T) {
 		g := game.NewGame("testgame_regular", removeGameChan, nil)
 
 		// Setup Player 1 (Sender)
-		p1Conn := newMockConn(2) // Buffer for 1 message (sender also receives broadcast)
+		p1Conn := newMockConn(4)                                     // Buffer for 2 broadcasts (command + taunt) to sender
 		p1 := player.NewPlayer(nil, "P1_Taunter", nil, false, false) // false for Kibitzer
-		p1.Ws = p1Conn // Assign our mock connection
+		p1.Ws = p1Conn                                               // Assign our mock connection
 
 		// Setup Player 2 (Receiver)
-		p2Conn := newMockConn(1) // Buffer for 1 message
+		p2Conn := newMockConn(4) // Buffer for 2 broadcasts (command + taunt) to receiver
 		p2 := player.NewPlayer(nil, "P2_Regular", nil, false, false)
 		p2.Ws = p2Conn
 
@@ -104,8 +105,8 @@ func TestTauntCommand(t *testing.T) {
 
 		// Assert messages for both players (sender and receiver)
 		playersToTest := []struct {
-			name   string
-			conn   *mockConn
+			name string
+			conn *mockConn
 		}{
 			{"Sender_P1", p1Conn},
 			{"Receiver_P2", p2Conn},
@@ -113,6 +114,28 @@ func TestTauntCommand(t *testing.T) {
 
 		for _, pt := range playersToTest {
 			t.Run(pt.name, func(t *testing.T) { // Sub-subtest for each player
+				// First message is the /taunt command echo (broadcast from HandleCommand)
+				select {
+				case receivedMsg := <-pt.conn.received:
+					chatCmd, ok := receivedMsg.(command.ChatCommand)
+					if !ok {
+						t.Fatalf("Expected ChatCommand, got %T", receivedMsg)
+					}
+					if chatCmd.Player != expectedSenderName {
+						t.Errorf("Expected sender name '%s', got '%s'", expectedSenderName, chatCmd.Player)
+					}
+					if chatCmd.Color != expectedColor {
+						t.Errorf("Expected color '%s', got '%s'", expectedColor, chatCmd.Color)
+					}
+					if chatCmd.Message != "/taunt" {
+						t.Errorf("Expected command echo '/taunt', got '%s'", chatCmd.Message)
+					}
+				case <-time.After(200 * time.Millisecond):
+					t.Errorf("Timed out waiting for command echo")
+					return
+				}
+
+				// Second message is the actual taunt (returned from handleSlashCommand)
 				select {
 				case receivedMsg := <-pt.conn.received:
 					chatCmd, ok := receivedMsg.(command.ChatCommand)
@@ -136,7 +159,7 @@ func TestTauntCommand(t *testing.T) {
 						t.Errorf("Received message '%s' is not a known taunt from game.Taunts", chatCmd.Message)
 					}
 				case <-time.After(200 * time.Millisecond): // Timeout for receiving message
-					t.Errorf("Timed out waiting for message")
+					t.Errorf("Timed out waiting for taunt message")
 				}
 			})
 		}
@@ -148,19 +171,19 @@ func TestTauntCommand(t *testing.T) {
 		g := game.NewGame("testgame_kibitzer", removeGameChan, nil)
 
 		// Setup Kibitzer (Sender)
-		kibitzerConn := newMockConn(1) // Kibitzer sender does not receive their own message unless in g.kibitzers list
+		kibitzerConn := newMockConn(4)                                          // Buffer for broadcasts
 		kibitzerSender := player.NewPlayer(nil, "K1_Taunter", nil, true, false) // true for Kibitzer
 		kibitzerSender.Ws = kibitzerConn
 
 		// Setup Regular Players (Receivers)
-		p1RegularConn := newMockConn(1)
+		p1RegularConn := newMockConn(4) // Buffer for 2 broadcasts (command + taunt)
 		p1Regular := player.NewPlayer(nil, "P1_Regular", nil, false, false)
 		p1Regular.Ws = p1RegularConn
 
-		p2RegularConn := newMockConn(1)
+		p2RegularConn := newMockConn(4) // Buffer for 2 broadcasts (command + taunt)
 		p2Regular := player.NewPlayer(nil, "P2_Regular", nil, false, false)
 		p2Regular.Ws = p2RegularConn
-		
+
 		g.Players = []*player.Player{p1Regular, p2Regular} // Active players in the game
 		g.CurrentPlayerIndex = 0
 		// Note: kibitzerSender is NOT added to g.Kibitzers (unexported list) via g.JoinKibitz here.
@@ -178,8 +201,8 @@ func TestTauntCommand(t *testing.T) {
 
 		// Assert messages for regular players (receivers)
 		receiversToTest := []struct {
-			name   string
-			conn   *mockConn
+			name string
+			conn *mockConn
 		}{
 			{"Receiver_P1_Regular", p1RegularConn},
 			{"Receiver_P2_Regular", p2RegularConn},
@@ -187,6 +210,28 @@ func TestTauntCommand(t *testing.T) {
 
 		for _, pt := range receiversToTest {
 			t.Run(pt.name, func(t *testing.T) {
+				// First message is the /taunt command echo (broadcast from HandleCommand)
+				select {
+				case receivedMsg := <-pt.conn.received:
+					chatCmd, ok := receivedMsg.(command.ChatCommand)
+					if !ok {
+						t.Fatalf("Expected ChatCommand, got %T", receivedMsg)
+					}
+					if chatCmd.Player != expectedSenderName {
+						t.Errorf("Expected sender name '%s', got '%s'", expectedSenderName, chatCmd.Player)
+					}
+					if chatCmd.Color != expectedColor {
+						t.Errorf("Expected color '%s', got '%s'", expectedColor, chatCmd.Color)
+					}
+					if chatCmd.Message != "/taunt" {
+						t.Errorf("Expected command echo '/taunt', got '%s'", chatCmd.Message)
+					}
+				case <-time.After(200 * time.Millisecond):
+					t.Errorf("Timed out waiting for command echo")
+					return
+				}
+
+				// Second message is the actual taunt (returned from handleSlashCommand)
 				select {
 				case receivedMsg := <-pt.conn.received:
 					chatCmd, ok := receivedMsg.(command.ChatCommand)
@@ -211,11 +256,11 @@ func TestTauntCommand(t *testing.T) {
 						t.Errorf("Received message '%s' is not a known taunt from game.Taunts", chatCmd.Message)
 					}
 				case <-time.After(200 * time.Millisecond):
-					t.Errorf("Timed out waiting for message from kibitzer")
+					t.Errorf("Timed out waiting for taunt message from kibitzer")
 				}
 			})
 		}
-		
+
 		// Assert that the kibitzer sender does NOT receive their own message
 		// (because they were not added to g.kibitzers list through g.JoinKibitz for this specific test structure)
 		t.Run("KibitzerSender_SelfReceiptCheck", func(t *testing.T) {

@@ -1,11 +1,13 @@
 package game
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
+	mathrand "math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -21,25 +23,34 @@ import (
 // Game is a struct that represents the state and connections of a multiplayer
 // ban qi game that the server is hosting.
 type Game struct {
-	ID                   string
-	gameState            gamestate.Gamestate
-	black, red           *player.Player
-	blackUndo, redUndo   bool
-	redStalemateProposed bool
+	ID                     string
+	gameState              gamestate.Gamestate
+	black, red             *player.Player
+	blackUndo, redUndo     bool
+	redStalemateProposed   bool
 	blackStalemateProposed bool
-	lastMove             []string
-	lastDead             string
-	active             bool
-	commandChan        chan command.PlayerCommand
-	db                 *sql.DB
-	Players            []*player.Player
-	CurrentPlayerIndex int
-	pieceToInt         map[string]int
-	canAttack          [][]bool
-	gameOverChan       chan bool
-	removeGameChan     chan *Game
-	kibitzers          []*player.Player
-	moveHistory        []*move
+	lastMove               []string
+	lastDead               string
+	active                 bool
+	commandChan            chan command.PlayerCommand
+	db                     *sql.DB
+	Players                []*player.Player
+	CurrentPlayerIndex     int
+	pieceToInt             map[string]int
+	canAttack              [][]bool
+	gameOverChan           chan bool
+	removeGameChan         chan *Game
+	kibitzers              []*player.Player
+	moveHistory            []*move
+	disconnectedPlayers    map[string]*disconnectedPlayer // Maps session ID to disconnected player info
+}
+
+// disconnectedPlayer tracks a player who disconnected and may reconnect
+type disconnectedPlayer struct {
+	player           *player.Player
+	disconnectedAt   time.Time
+	playerIndex      int // Index in Players slice
+	reconnectTimeout time.Duration
 }
 
 var upgrader = &websocket.Upgrader{
@@ -77,28 +88,50 @@ func (g *Game) SwitchPlayers() {
 }
 
 // Join causes a connection to join a game as a websocket and player
-func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData) bool {
+func (g *Game) Join(w http.ResponseWriter, r *http.Request, name string, user *httpauth.UserData, sessionID string) bool {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("Err = %v\n", err.Error())
 		return false
 	}
-	return g.JoinWs(conn, name, user, false)
+	return g.JoinWs(conn, name, user, false, sessionID)
 }
 
 // JoinWs joins a game with an existing websocket
-func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool) bool {
+func (g *Game) JoinWs(conn *websocket.Conn, name string, user *httpauth.UserData, bot bool, sessionID string) bool {
+	fmt.Printf("JoinWs called - name: %s, bot: %v, sessionID: %s, current players: %d\n", name, bot, sessionID, len(g.Players))
+
+	// First, try to reconnect if a session ID is provided
+	if sessionID != "" {
+		fmt.Printf("Attempting to reconnect with session ID: %s\n", sessionID)
+		if g.tryReconnectPlayer(sessionID, conn) {
+			fmt.Printf("Player reconnected successfully with session ID: %s\n", sessionID)
+			return true
+		}
+		fmt.Printf("Failed to reconnect with session ID: %s\n", sessionID)
+	}
+
 	if len(g.Players) == 0 {
 		p := player.NewPlayer(conn, name, user, false, bot)
+		p.SessionID = generateSessionID() // Assign new session ID
 		g.Players = append(g.Players, p)
-		fmt.Printf("User [%s] Joined as #1\n", p.Name)
+		fmt.Printf("User [%s] Joined as #1 with session %s\n", p.Name, p.SessionID)
+
+		// Send session ID to client
+		g.sendSessionID(p)
+
 		go g.listenPlayer(p)
 		go g.startGame()
 		return true
 	} else if len(g.Players) == 1 {
 		p := player.NewPlayer(conn, name, user, false, bot)
+		p.SessionID = generateSessionID() // Assign new session ID
 		g.Players = append(g.Players, p)
-		fmt.Printf("User [%s] Trying to join as #2\n", p.Name)
+		fmt.Printf("User [%s] Trying to join as #2 with session %s\n", p.Name, p.SessionID)
+
+		// Send session ID to client
+		g.sendSessionID(p)
+
 		go g.listenPlayer(p)
 		return true
 	} else {
@@ -133,7 +166,7 @@ func (g *Game) JoinAi(ai settings.AiConfig) bool {
 	}
 	fmt.Println("AI dialed successfully")
 
-	g.JoinWs(conn, ai.Name, nil, true)
+	g.JoinWs(conn, ai.Name, nil, true, "") // Bots don't need session IDs
 	return true
 }
 
@@ -160,7 +193,7 @@ func (g *Game) closeWebSockets() {
 	}
 }
 
-func readLoop(c *websocket.Conn) {
+func readLoop(c player.WsConn) {
 	for {
 		if _, _, err := c.NextReader(); err != nil {
 			c.Close()
@@ -174,7 +207,11 @@ func (g *Game) startGame() {
 
 	fmt.Println("game loop started")
 	defer func() { fmt.Println("game loop ended") }()
-	rand.Seed(time.Now().UTC().UnixNano())
+
+	// As of Go 1.20, rand.Seed is deprecated.
+	// The generator is seeded randomly at program startup.
+	// rand.Seed(time.Now().UTC().UnixNano())
+
 	g.gameState.KnownBoard = generateUnknownBoard()
 	for {
 		fmt.Println("Listening!")
@@ -182,10 +219,9 @@ func (g *Game) startGame() {
 		case c := <-g.commandChan:
 			fmt.Println("Heard a command")
 			// handle p1 move
-			g.handleCommand(c)
+			g.HandleCommand(c)
 			fmt.Println("Done handling command")
-			break
-		case _ = <-g.gameOverChan:
+		case <-g.gameOverChan:
 			fmt.Println("Got a message on gameOverChan")
 			return
 		}
@@ -193,7 +229,7 @@ func (g *Game) startGame() {
 
 }
 
-func (g *Game) handleCommand(c command.PlayerCommand) {
+func (g *Game) HandleCommand(c command.PlayerCommand) {
 	fmt.Printf("Got command: %+v\n", c)
 	// if g.currentPlayer != c.p {
 	// 	r := command{Action: "info", Argument: "Not your turn!"}
@@ -210,7 +246,7 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 		if c.P == g.red {
 			color = "red"
 		}
-		if c.P.Kibitzer == true {
+		if c.P.Kibitzer {
 			color = "teal"
 		}
 
@@ -221,7 +257,7 @@ func (g *Game) handleCommand(c command.PlayerCommand) {
 	case "board?":
 		g.broadcastBoard()
 	case "move":
-		if c.P.Kibitzer == true {
+		if c.P.Kibitzer {
 			g.suggestMove(c)
 		} else if ok := g.tryMove(c); ok {
 			// check for a victory
@@ -251,15 +287,7 @@ func (g *Game) handleSlashCommand(c command.PlayerCommand) string {
 	}
 	if strings.EqualFold(c.C.Argument, "/taunt") {
 		randomTaunt := g.GetTaunt()
-		color := "black" // Default color
-		if c.P == g.red {
-			color = "red"
-		}
-		if c.P.Kibitzer == true {
-			color = "teal"
-		}
-		g.broadcastChat(c.P, randomTaunt, color)
-		return ""
+		return randomTaunt
 	}
 	return ""
 }
@@ -415,7 +443,7 @@ func (g *Game) suggestResign(p *player.Player) {
 }
 
 func (g *Game) GetTaunt() string {
-	return Taunts[rand.Intn(len(Taunts))]
+	return Taunts[mathrand.Intn(len(Taunts))]
 }
 
 func (g *Game) broadcastBoard() {
@@ -555,7 +583,6 @@ func (g *Game) endGame() {
 	g.gameOverChan = nil
 	g.closeWebSockets()
 	fmt.Println("Trying to return from endGame")
-	return
 }
 
 func (g *Game) broadcast(v interface{}) {
@@ -579,6 +606,17 @@ func (g *Game) broadcastColors() {
 	color.Color = "black"
 	if g.black != nil && g.black.Ws != nil {
 		g.black.Ws.WriteJSON(color)
+	}
+}
+
+func (g *Game) sendSessionID(p *player.Player) {
+	if p != nil && p.Ws != nil {
+		sessionCmd := command.SessionCommand{
+			Action:    "session",
+			SessionID: p.SessionID,
+			GameID:    g.ID,
+		}
+		p.Ws.WriteJSON(sessionCmd)
 	}
 }
 
@@ -608,9 +646,18 @@ func (g *Game) listenPlayer(p *player.Player) {
 		}
 	}
 	go readLoop(p.Ws)
-	if !g.hasEnded() && (p == g.CurrentPlayer() || p == g.NextPlayer()) {
 
-		// If both player slots are taken, and one of the players disconnects, send a victory message
+	// Handle disconnection
+	if !g.hasEnded() && (p == g.CurrentPlayer() || p == g.NextPlayer()) {
+		// If both player slots are taken, and one of the players disconnects
+		// Mark as disconnected and give grace period for reconnection
+		if len(g.Players) == 2 && !p.Bot {
+			g.markPlayerDisconnected(p)
+			// markPlayerDisconnected will handle ending the game after timeout
+			return
+		}
+
+		// For bots or other cases, end immediately
 		if len(g.Players) == 2 {
 			if p == g.CurrentPlayer() {
 				g.broadcastVictory(g.NextPlayer(), fmt.Sprintf("%s disconnected", g.CurrentPlayer().Name))
@@ -623,7 +670,7 @@ func (g *Game) listenPlayer(p *player.Player) {
 	}
 }
 
-//NewGame returns a newly initialized game struct
+// NewGame returns a newly initialized game struct
 func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 	return &Game{
 		ID:           id,
@@ -633,8 +680,9 @@ func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 		commandChan:  make(chan command.PlayerCommand),
 		gameOverChan: make(chan bool, 3), // I think this masks a bug
 		// but I'm not sure how to fix it atm...  I need a go expert.
-		removeGameChan: removeGameChan,
-		db:             db,
+		removeGameChan:      removeGameChan,
+		db:                  db,
+		disconnectedPlayers: make(map[string]*disconnectedPlayer),
 		gameState: gamestate.Gamestate{
 			RemainingPieces: []string{
 				"K", "k",
@@ -662,6 +710,110 @@ func NewGame(id string, removeGameChan chan *Game, db *sql.DB) *Game {
 			{true, false, true, true, true, true, true},     // King
 		},
 	}
+}
+
+// generateSessionID creates a unique session ID for a player
+func generateSessionID() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to timestamp-based ID if random generation fails
+		return fmt.Sprintf("session-%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(bytes)
+}
+
+// tryReconnectPlayer attempts to reconnect a player using their session ID
+func (g *Game) tryReconnectPlayer(sessionID string, conn *websocket.Conn) bool {
+	if sessionID == "" {
+		fmt.Printf("tryReconnectPlayer: empty sessionID\n")
+		return false
+	}
+
+	fmt.Printf("tryReconnectPlayer: looking for session %s in disconnectedPlayers (count: %d)\n", sessionID, len(g.disconnectedPlayers))
+	for sid := range g.disconnectedPlayers {
+		fmt.Printf("  - has session: %s\n", sid)
+	}
+
+	dp, exists := g.disconnectedPlayers[sessionID]
+	if !exists {
+		fmt.Printf("tryReconnectPlayer: session %s not found in disconnectedPlayers\n", sessionID)
+		return false
+	}
+
+	// Check if reconnection timeout has expired
+	elapsed := time.Since(dp.disconnectedAt)
+	fmt.Printf("tryReconnectPlayer: session found, elapsed time: %v, timeout: %v\n", elapsed, dp.reconnectTimeout)
+	if elapsed > dp.reconnectTimeout {
+		fmt.Printf("Reconnection timeout expired for session %s\n", sessionID)
+		delete(g.disconnectedPlayers, sessionID)
+		return false
+	}
+
+	// Reconnect the player
+	fmt.Printf("Player %s reconnecting with session %s\n", dp.player.Name, sessionID)
+	dp.player.Ws = conn
+
+	// Remove from disconnected players
+	delete(g.disconnectedPlayers, sessionID)
+
+	// Restart listening to this player
+	go g.listenPlayer(dp.player)
+
+	// Send current game state to reconnected player
+	g.broadcastBoard()
+	g.broadcastChat(dp.player, fmt.Sprintf("%s reconnected", dp.player.Name), "green")
+
+	return true
+}
+
+// markPlayerDisconnected marks a player as disconnected with a grace period for reconnection
+func (g *Game) markPlayerDisconnected(p *player.Player) {
+	if p.SessionID == "" {
+		// No session ID, can't reconnect
+		return
+	}
+
+	fmt.Printf("Player %s disconnected, session %s. Grace period for reconnection: 2m\n", p.Name, p.SessionID)
+
+	dp := &disconnectedPlayer{
+		player:           p,
+		disconnectedAt:   time.Now(),
+		reconnectTimeout: 2 * time.Minute,
+	}
+
+	// Find player index
+	for i, player := range g.Players {
+		if player == p {
+			dp.playerIndex = i
+			break
+		}
+	}
+
+	g.disconnectedPlayers[p.SessionID] = dp
+
+	// Notify other players
+	g.broadcastChat(p, fmt.Sprintf("%s disconnected. Waiting for reconnection...", p.Name), "orange")
+
+	// Start a timer to end the game if player doesn't reconnect
+	go func() {
+		time.Sleep(dp.reconnectTimeout)
+
+		// Check if player has reconnected
+		if _, stillDisconnected := g.disconnectedPlayers[p.SessionID]; stillDisconnected && !g.hasEnded() {
+			fmt.Printf("Player %s did not reconnect in time. Ending game.\n", p.Name)
+			delete(g.disconnectedPlayers, p.SessionID)
+
+			// End the game due to timeout
+			if len(g.Players) == 2 {
+				if p == g.CurrentPlayer() {
+					g.broadcastVictory(g.NextPlayer(), fmt.Sprintf("%s did not reconnect", p.Name))
+				} else {
+					g.broadcastVictory(g.CurrentPlayer(), fmt.Sprintf("%s did not reconnect", p.Name))
+				}
+			}
+			g.endGame()
+		}
+	}()
 }
 
 func (g *Game) tryMove(pc command.PlayerCommand) bool {
@@ -735,7 +887,7 @@ func (g *Game) flip(m *move) (bool, string) {
 		return false, ""
 	}
 	// get a random piece from the remaining pieces
-	index := rand.Intn(len(g.gameState.RemainingPieces))
+	index := mathrand.Intn(len(g.gameState.RemainingPieces))
 	piece := g.gameState.RemainingPieces[index]
 	g.gameState.KnownBoard[srcRank][srcFile] = piece
 	if len(g.gameState.RemainingPieces) == 32 {
@@ -744,7 +896,6 @@ func (g *Game) flip(m *move) (bool, string) {
 		case "K", "G", "E", "C", "H", "P", "Q":
 			g.black = g.CurrentPlayer()
 			g.red = g.NextPlayer()
-			break
 		case "k", "g", "e", "c", "h", "p", "q":
 			g.red = g.CurrentPlayer()
 			g.black = g.NextPlayer()

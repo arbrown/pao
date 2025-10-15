@@ -15,8 +15,8 @@ export default class Login extends React.Component {
       return(
         <div className="login-div">
           <form className="login-form" onSubmit={(e) => this.submitLogin(e)} action="/login" method="post">
-            <input type="text" name="username" ref="username" value={this.state.username} onChange={(e) => this.usernameChanged(e)}/>
-            <input type="password" name="password" ref="password" value={this.state.password} onChange={(e) => this.passwordChanged(e)}/>
+            <input type="text" name="username" ref="username" value={this.state.username} onChange={(e) => this.usernameChanged(e)} autocomplete="username"/>
+            <input type="password" name="password" ref="password" value={this.state.password} onChange={(e) => this.passwordChanged(e)} autocomplete="current-password"/>
             <button onClick={(e) => this.submitLogin(e)}>Sign In</button>
             <button onClick={(e) => this.submitRegister(e)}>Register</button>
           </form>
