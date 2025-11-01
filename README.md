@@ -75,6 +75,7 @@ Then, another player can join your game and it will begin.
 ![join](./screenshots/join-existing.png)  
 Have fun!
 ![game](./screenshots/game2.png)  
+
 Banqi Game Notation
 ---------------------
 The game code uses a character-based notation to store and transmit piece information.
